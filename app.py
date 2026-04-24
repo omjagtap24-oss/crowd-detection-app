@@ -1,14 +1,31 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request, redirect, url_for
 import random
 
 app = Flask(__name__)
 
-# Home page (UI)
+# Login Page
 @app.route("/")
+def login():
+    return render_template("login.html")
+
+# Handle login
+@app.route("/login", methods=["POST"])
+def handle_login():
+    username = request.form.get("username")
+    password = request.form.get("password")
+
+    # Simple demo login (no database)
+    if username == "admin" and password == "1234":
+        return redirect(url_for("home"))
+    else:
+        return "Invalid Login"
+
+# Main App Page
+@app.route("/home")
 def home():
     return render_template("index.html")
 
-# Crowd API with smart suggestion
+# Crowd API
 @app.route("/crowd")
 def crowd():
     crowd_level = random.choice(["Low", "Medium", "High"])
@@ -22,7 +39,6 @@ def crowd():
 
     return jsonify({
         "crowd_level": crowd_level,
-        "location": "Temple Area",
         "suggestion": suggestion
     })
 
@@ -30,8 +46,7 @@ def crowd():
 @app.route("/predict")
 def predict():
     return jsonify({
-        "best_time": "6 PM - Low Crowd",
-        "advice": "Visit during evening hours"
+        "best_time": "6 PM - Low Crowd"
     })
 
 if __name__ == "__main__":
