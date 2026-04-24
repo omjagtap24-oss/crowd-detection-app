@@ -1,100 +1,78 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Crowd Detection App</title>
+    <title>Crowd Detection Map</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background: #f0f2f5;
-            margin: 0;
-        }
+        body { margin: 0; font-family: Arial; }
 
-        h1 {
+        #map { height: 90vh; width: 100%; }
+
+        .top-bar {
+            text-align: center;
+            padding: 10px;
             background: #2c3e50;
             color: white;
-            padding: 15px;
-        }
-
-        .card {
-            background: white;
-            padding: 20px;
-            margin: 20px auto;
-            width: 300px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-
-        button {
-            padding: 12px 20px;
-            margin-top: 10px;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        .crowd-btn {
-            background-color: #007bff;
-            color: white;
-        }
-
-        .predict-btn {
-            background-color: #28a745;
-            color: white;
-        }
-
-        .result {
-            margin-top: 15px;
-            font-size: 18px;
-            font-weight: bold;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>🛕 Crowd Detection System</h1>
+<div class="top-bar">
+    <h2>🛕 Smart Crowd Detection Map</h2>
+</div>
 
-    <div class="card">
-        <button class="crowd-btn" onclick="getCrowd()">Check Crowd</button>
-        <div id="crowd" class="result"></div>
-    </div>
+<div id="map"></div>
 
-    <div class="card">
-        <button class="predict-btn" onclick="getPrediction()">Best Time</button>
-        <div id="predict" class="result"></div>
-    </div>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-    <script>
-        function getCrowd() {
+<script>
+    var map = L.map('map').setView([18.5204, 73.8567], 6);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    var temples = [
+        {name: "Shirdi Sai Baba", coords: [19.7669, 74.4774]},
+        {name: "Tirupati Balaji", coords: [13.6288, 79.4192]},
+        {name: "Siddhivinayak", coords: [19.0176, 72.8305]}
+    ];
+
+    function getColor(level) {
+        if (level === "High") return "red";
+        if (level === "Medium") return "orange";
+        return "green";
+    }
+
+    temples.forEach(t => {
+
+        var marker = L.marker(t.coords).addTo(map);
+
+        marker.on("click", function() {
+
             fetch('/crowd')
             .then(res => res.json())
             .then(data => {
-                let color = "green";
 
-                if (data.crowd_level === "High") color = "red";
-                else if (data.crowd_level === "Medium") color = "orange";
+                var color = getColor(data.crowd_level);
 
-                document.getElementById("crowd").innerHTML =
-                    "Crowd: <span style='color:" + color + "'>" +
-                    data.crowd_level + "</span><br>" +
-                    data.suggestion;
+                var popupContent = `
+                    <b>${t.name}</b><br>
+                    Crowd: <span style="color:${color}">${data.crowd_level}</span><br>
+                    ${data.suggestion}
+                `;
+
+                marker.bindPopup(popupContent).openPopup();
             });
-        }
 
-        function getPrediction() {
-            fetch('/predict')
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById("predict").innerHTML =
-                    "Best Time: " + data.best_time;
-            });
-        }
-    </script>
+        });
+    });
+
+</script>
 
 </body>
 </html>
-
-
