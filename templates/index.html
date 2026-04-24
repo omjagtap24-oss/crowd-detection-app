@@ -6,37 +6,71 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
     <style>
-        body { margin: 0; font-family: Arial; }
-
-        #map { height: 80vh; width: 100%; }
-
-        .top-bar {
-            background: #2c3e50;
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f172a;
             color: white;
-            padding: 10px;
-            text-align: center;
         }
 
-        .controls {
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            padding: 12px;
             text-align: center;
-            padding: 10px;
-            background: #ecf0f1;
+            font-size: 20px;
+            font-weight: bold;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        /* Control Panel */
+        .panel {
+            position: absolute;
+            top: 70px;
+            left: 20px;
+            width: 280px;
+            padding: 15px;
+            border-radius: 15px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            z-index: 1000;
         }
 
         input {
-            padding: 8px;
-            width: 200px;
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 10px;
         }
 
         button {
-            padding: 8px 15px;
-            margin: 5px;
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: none;
+            border-radius: 8px;
             cursor: pointer;
+            font-weight: bold;
         }
 
+        .search-btn { background: #3b82f6; color: white; }
+        .crowd-btn { background: #ef4444; color: white; }
+        .predict-btn { background: #22c55e; color: white; }
+
         #result {
-            font-weight: bold;
             margin-top: 10px;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -44,17 +78,17 @@
 <body>
 
 <div class="top-bar">
-    <h2>🛕 Smart Crowd Detection Map</h2>
+    🛕 Smart Crowd Detection System
 </div>
 
-<div class="controls">
-    🔍 <input type="text" id="search" placeholder="Enter temple name">
-    <button onclick="searchTemple()">Search</button>
-    <br>
-    <button onclick="getCrowd()">Check Crowd</button>
-    <button onclick="getPrediction()">Best Time</button>
+<div class="panel">
+    🔍 <input type="text" id="search" placeholder="Search temple...">
+    <button class="search-btn" onclick="searchTemple()">Search</button>
 
-    <p id="result"></p>
+    <button class="crowd-btn" onclick="getCrowd()">Check Crowd</button>
+    <button class="predict-btn" onclick="getPrediction()">Best Time</button>
+
+    <div id="result"></div>
 </div>
 
 <div id="map"></div>
@@ -69,34 +103,47 @@
     }).addTo(map);
 
     var temples = [
-        {name: "Shirdi Sai Baba", coords: [19.7669, 74.4774]},
-        {name: "Tirupati Balaji", coords: [13.6288, 79.4192]},
-        {name: "Siddhivinayak", coords: [19.0176, 72.8305]}
+        {key: "shirdi", name: "Shirdi Sai Baba", coords: [19.7669, 74.4774]},
+        {key: "tirupati", name: "Tirupati Balaji", coords: [13.6288, 79.4192]},
+        {key: "siddhivinayak", name: "Siddhivinayak", coords: [19.0176, 72.8305]}
     ];
 
+    var selectedTemple = "shirdi";
     var markers = [];
 
     function getColor(level) {
-        if (level === "High") return "red";
-        if (level === "Medium") return "orange";
-        return "green";
+        if (level === "High") return "#ef4444";
+        if (level === "Medium") return "#f59e0b";
+        return "#22c55e";
     }
 
-    // Add markers
     temples.forEach(t => {
-        var marker = L.marker(t.coords).addTo(map)
-            .bindPopup(t.name);
+        var marker = L.marker(t.coords).addTo(map).bindPopup(t.name);
 
-        markers.push({name: t.name.toLowerCase(), marker: marker});
+        marker.on("click", function() {
+            selectedTemple = t.key;
+            fetch('/crowd/' + t.key)
+            .then(res => res.json())
+            .then(data => showResult(data));
+        });
+
+        markers.push({name: t.name.toLowerCase(), key: t.key, marker: marker});
     });
 
-    // 🔍 Search function
+    function showResult(data) {
+        document.getElementById("result").innerHTML =
+            "<b>" + data.temple + "</b><br>" +
+            "Crowd: <span style='color:" + getColor(data.crowd_level) + "'>" +
+            data.crowd_level + "</span><br>" +
+            data.suggestion;
+    }
+
     function searchTemple() {
         var input = document.getElementById("search").value.toLowerCase();
-
         var found = markers.find(t => t.name.includes(input));
 
         if (found) {
+            selectedTemple = found.key;
             map.setView(found.marker.getLatLng(), 10);
             found.marker.openPopup();
         } else {
@@ -104,24 +151,18 @@
         }
     }
 
-    // Crowd API
     function getCrowd() {
-        fetch('/crowd')
+        fetch('/crowd/' + selectedTemple)
         .then(res => res.json())
-        .then(data => {
-            document.getElementById("result").innerHTML =
-                "Crowd: <span style='color:" + getColor(data.crowd_level) + "'>" +
-                data.crowd_level + "</span><br>" +
-                data.suggestion;
-        });
+        .then(data => showResult(data));
     }
 
-    // Prediction API
     function getPrediction() {
-        fetch('/predict')
+        fetch('/predict/' + selectedTemple)
         .then(res => res.json())
         .then(data => {
             document.getElementById("result").innerHTML =
+                "<b>" + data.temple + "</b><br>" +
                 "Best Time: " + data.best_time;
         });
     }
@@ -129,3 +170,4 @@
 
 </body>
 </html>
+
