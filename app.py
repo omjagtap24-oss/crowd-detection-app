@@ -15,7 +15,6 @@ def handle_login():
     username = request.form.get("username")
     password = request.form.get("password")
 
-    # Accept any login (for demo)
     if username and password:
         return redirect(url_for("home"))
     else:
@@ -28,7 +27,7 @@ def home():
     return render_template("index.html")
 
 
-# ---------------- CROWD API (DYNAMIC) ----------------
+# ---------------- CROWD API ----------------
 @app.route("/crowd/<temple>")
 def crowd(temple):
 
@@ -48,7 +47,7 @@ def crowd(temple):
     })
 
 
-# ---------------- BEST TIME API (DYNAMIC) ----------------
+# ---------------- BEST TIME API ----------------
 @app.route("/predict/<temple>")
 def predict(temple):
 
@@ -68,3 +67,4 @@ def predict(temple):
 # ---------------- RUN APP ----------------
 if __name__ == "__main__":
     app.run()
+   
