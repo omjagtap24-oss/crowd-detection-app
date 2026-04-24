@@ -1,20 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Crowd Detection Map</title>
+    <title>Smart Crowd Detection</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
     <style>
         body { margin: 0; font-family: Arial; }
 
-        #map { height: 90vh; width: 100%; }
+        #map { height: 80vh; width: 100%; }
 
         .top-bar {
-            text-align: center;
-            padding: 10px;
             background: #2c3e50;
             color: white;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .controls {
+            text-align: center;
+            padding: 10px;
+            background: #ecf0f1;
+        }
+
+        input {
+            padding: 8px;
+            width: 200px;
+        }
+
+        button {
+            padding: 8px 15px;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        #result {
+            font-weight: bold;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -23,6 +45,16 @@
 
 <div class="top-bar">
     <h2>🛕 Smart Crowd Detection Map</h2>
+</div>
+
+<div class="controls">
+    🔍 <input type="text" id="search" placeholder="Enter temple name">
+    <button onclick="searchTemple()">Search</button>
+    <br>
+    <button onclick="getCrowd()">Check Crowd</button>
+    <button onclick="getPrediction()">Best Time</button>
+
+    <p id="result"></p>
 </div>
 
 <div id="map"></div>
@@ -42,36 +74,57 @@
         {name: "Siddhivinayak", coords: [19.0176, 72.8305]}
     ];
 
+    var markers = [];
+
     function getColor(level) {
         if (level === "High") return "red";
         if (level === "Medium") return "orange";
         return "green";
     }
 
+    // Add markers
     temples.forEach(t => {
+        var marker = L.marker(t.coords).addTo(map)
+            .bindPopup(t.name);
 
-        var marker = L.marker(t.coords).addTo(map);
-
-        marker.on("click", function() {
-
-            fetch('/crowd')
-            .then(res => res.json())
-            .then(data => {
-
-                var color = getColor(data.crowd_level);
-
-                var popupContent = `
-                    <b>${t.name}</b><br>
-                    Crowd: <span style="color:${color}">${data.crowd_level}</span><br>
-                    ${data.suggestion}
-                `;
-
-                marker.bindPopup(popupContent).openPopup();
-            });
-
-        });
+        markers.push({name: t.name.toLowerCase(), marker: marker});
     });
 
+    // 🔍 Search function
+    function searchTemple() {
+        var input = document.getElementById("search").value.toLowerCase();
+
+        var found = markers.find(t => t.name.includes(input));
+
+        if (found) {
+            map.setView(found.marker.getLatLng(), 10);
+            found.marker.openPopup();
+        } else {
+            alert("Temple not found");
+        }
+    }
+
+    // Crowd API
+    function getCrowd() {
+        fetch('/crowd')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("result").innerHTML =
+                "Crowd: <span style='color:" + getColor(data.crowd_level) + "'>" +
+                data.crowd_level + "</span><br>" +
+                data.suggestion;
+        });
+    }
+
+    // Prediction API
+    function getPrediction() {
+        fetch('/predict')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("result").innerHTML =
+                "Best Time: " + data.best_time;
+        });
+    }
 </script>
 
 </body>
