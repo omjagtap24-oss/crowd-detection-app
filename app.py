@@ -3,18 +3,30 @@ import random
 
 app = Flask(__name__)
 
+# Home page (UI)
 @app.route("/")
 def home():
     return render_template("index.html")
 
+# Crowd API with smart suggestion
 @app.route("/crowd")
 def crowd():
+    crowd_level = random.choice(["Low", "Medium", "High"])
+
+    if crowd_level == "High":
+        suggestion = "Avoid visiting now"
+    elif crowd_level == "Medium":
+        suggestion = "Visit after some time"
+    else:
+        suggestion = "Safe to visit"
+
     return jsonify({
-        "crowd_level": random.choice(["Low", "Medium", "High"]),
+        "crowd_level": crowd_level,
         "location": "Temple Area",
-        "suggestion": "Check timing before visiting"
+        "suggestion": suggestion
     })
 
+# Prediction API
 @app.route("/predict")
 def predict():
     return jsonify({
