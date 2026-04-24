@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Crowd Detection App</title>
+</head>
+<body>
+    <h1>Crowd Detection System</h1>
+    
+    <button onclick="getCrowd()">Check Crowd</button>
+    <p id="crowd"></p>
+
+    <button onclick="getPrediction()">Best Time</button>
+    <p id="predict"></p>
+
+    <script>
+        function getCrowd() {
+            fetch('/crowd')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('crowd').innerText =
+                "Crowd Level: " + data.crowd_level;
+            });
+        }
+
+        function getPrediction() {
+            fetch('/predict')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('predict').innerText =
+                "Best Time: " + data.best_time;
+            });
+        }
+    </script>
+</body>
+</html>

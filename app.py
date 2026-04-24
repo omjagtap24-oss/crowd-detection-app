@@ -1,14 +1,14 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 import random
 
 app = Flask(__name__)
 
-# Home route
+# Home route (loads webpage)
 @app.route("/")
 def home():
-    return "Crowd Detection App is Running!"
+    return render_template("index.html")
 
-# Crowd data (random for demo)
+# Crowd API
 @app.route("/crowd")
 def crowd():
     return jsonify({
@@ -17,7 +17,7 @@ def crowd():
         "suggestion": "Check timing before visiting"
     })
 
-# Prediction feature
+# Prediction API
 @app.route("/predict")
 def predict():
     return jsonify({
