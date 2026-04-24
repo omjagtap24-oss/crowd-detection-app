@@ -99,7 +99,7 @@
 
     <script>
         function getCrowd() {
-            fetch('/crowd')
+            fetch('https://crowd-detection-app.onrender.com/crowd')
             .then(response => response.json())
             .then(data => {
 
@@ -118,7 +118,7 @@
         }
 
         function getPrediction() {
-            fetch('/predict')
+            fetch('https://crowd-detection-app.onrender.com/predict')
             .then(response => response.json())
             .then(data => {
                 document.getElementById("predict").innerHTML =
