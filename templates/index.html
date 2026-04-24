@@ -2,35 +2,127 @@
 <html>
 <head>
     <title>Crowd Detection App</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            margin: 0;
+        }
+
+        .container {
+            margin-top: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            margin: 20px auto;
+            width: 300px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        button {
+            padding: 12px 20px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .crowd-btn {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .predict-btn {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .result {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .map {
+            width: 90%;
+            max-width: 600px;
+            height: 250px;
+            margin: 20px auto;
+            background: linear-gradient(45deg, #dfe6e9, #b2bec3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2d3436;
+            font-size: 18px;
+        }
+    </style>
 </head>
-<body style="text-align:center; font-family:Arial;">
 
-    <h1>Crowd Detection System</h1>
+<body>
 
-    <button onclick="getCrowd()">Check Crowd</button>
-    <p id="crowd"></p>
+    <h1>🛕 Crowd Detection System</h1>
 
-    <br>
+    <div class="map">
+        🗺️ Temple Zone Map (Demo View)
+    </div>
 
-    <button onclick="getPrediction()">Best Time</button>
-    <p id="predict"></p>
+    <div class="container">
+
+        <div class="card">
+            <h3>Check Current Crowd</h3>
+            <button class="crowd-btn" onclick="getCrowd()">Check Crowd</button>
+            <div id="crowd" class="result"></div>
+        </div>
+
+        <div class="card">
+            <h3>Find Best Time</h3>
+            <button class="predict-btn" onclick="getPrediction()">Best Time</button>
+            <div id="predict" class="result"></div>
+        </div>
+
+    </div>
 
     <script>
         function getCrowd() {
             fetch('/crowd')
-            .then(res => res.json())
+            .then(response => response.json())
             .then(data => {
-                document.getElementById('crowd').innerText =
-                "Crowd Level: " + data.crowd_level;
+
+                let color = "green";
+
+                if (data.crowd_level === "High") {
+                    color = "red";
+                } else if (data.crowd_level === "Medium") {
+                    color = "orange";
+                }
+
+                document.getElementById("crowd").innerHTML =
+                    "Crowd Level: <span style='color:" + color + "'>" +
+                    data.crowd_level + "</span>";
             });
         }
 
         function getPrediction() {
             fetch('/predict')
-            .then(res => res.json())
+            .then(response => response.json())
             .then(data => {
-                document.getElementById('predict').innerText =
-                "Best Time: " + data.best_time;
+                document.getElementById("predict").innerHTML =
+                    "Best Time: " + data.best_time;
             });
         }
     </script>
