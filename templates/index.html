@@ -35,7 +35,7 @@
             position: absolute;
             top: 70px;
             left: 20px;
-            width: 280px;
+            width: 300px;
             padding: 15px;
             border-radius: 15px;
             background: rgba(255,255,255,0.1);
@@ -49,7 +49,7 @@
             padding: 10px;
             border-radius: 8px;
             border: none;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
 
         button {
@@ -66,6 +66,14 @@
         .crowd-btn { background: #ef4444; color: white; }
         .predict-btn { background: #22c55e; color: white; }
 
+        #suggestions {
+            background: white;
+            color: black;
+            border-radius: 8px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
         #result {
             margin-top: 10px;
             font-size: 14px;
@@ -80,8 +88,15 @@
 </div>
 
 <div class="panel">
-    🔍 <input type="text" id="search" placeholder="Search any temple in India...">
+
+    🔍 <input type="text" id="search" placeholder="Search temple..." oninput="showSuggestions()">
+    <div id="suggestions"></div>
+
     <button class="search-btn" onclick="searchTemple()">Search</button>
+
+    <button onclick="useLocation()" style="background:#06b6d4;color:white;">
+        📍 Use My Location
+    </button>
 
     <button class="crowd-btn" onclick="getCrowd()">Check Crowd</button>
     <button class="predict-btn" onclick="getPrediction()">Best Time</button>
@@ -94,7 +109,7 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
-    var map = L.map('map').setView([20.5937, 78.9629], 5); // India
+    var map = L.map('map').setView([20.5937, 78.9629], 5);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
@@ -116,14 +131,9 @@
             data.suggestion;
     }
 
-    // 🔍 SEARCH ANY TEMPLE
+    // 🔍 SEARCH
     function searchTemple() {
         var query = document.getElementById("search").value;
-
-        if (!query) {
-            alert("Please enter temple name");
-            return;
-        }
 
         fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + query + " temple india")
         .then(res => res.json())
@@ -133,18 +143,76 @@
                 var lat = data[0].lat;
                 var lon = data[0].lon;
 
-                map.setView([lat, lon], 12);
+                map.setView([lat, lon], 13);
 
                 L.marker([lat, lon]).addTo(map)
                     .bindPopup(query)
                     .openPopup();
 
                 selectedTemple = query;
-
-            } else {
-                alert("Temple not found");
             }
         });
+    }
+
+    // 🔍 AUTO SUGGESTIONS
+    function showSuggestions() {
+        var query = document.getElementById("search").value;
+
+        if (query.length < 3) {
+            document.getElementById("suggestions").innerHTML = "";
+            return;
+        }
+
+        fetch("https://nominatim.openstreetmap.org/search?format=json&limit=5&q=" + query + " temple India")
+        .then(res => res.json())
+        .then(data => {
+
+            let suggestions = "";
+
+            data.forEach(place => {
+                suggestions += `
+                    <div style="padding:5px;cursor:pointer;"
+                    onclick="selectSuggestion('${place.display_name}', ${place.lat}, ${place.lon})">
+                    ${place.display_name}
+                    </div>
+                `;
+            });
+
+            document.getElementById("suggestions").innerHTML = suggestions;
+        });
+    }
+
+    function selectSuggestion(name, lat, lon) {
+        document.getElementById("search").value = name;
+        document.getElementById("suggestions").innerHTML = "";
+
+        map.setView([lat, lon], 13);
+
+        L.marker([lat, lon]).addTo(map)
+            .bindPopup(name)
+            .openPopup();
+
+        selectedTemple = name;
+    }
+
+    // 📍 LOCATION
+    function useLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+
+                var lat = position.coords.latitude;
+                var lon = position.coords.longitude;
+
+                map.setView([lat, lon], 13);
+
+                L.marker([lat, lon]).addTo(map)
+                    .bindPopup("You are here")
+                    .openPopup();
+
+                selectedTemple = "Nearby Temple";
+
+            });
+        }
     }
 
     // 🔴 CROWD
