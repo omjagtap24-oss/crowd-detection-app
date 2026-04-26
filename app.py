@@ -1,16 +1,16 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 import random
 
 app = Flask(__name__)
-app.secret_key = "secret123"
 
-# Simple user storage
+# Temporary user storage
 users = {}
 
-# ---------------- LOGIN PAGE ----------------
+# ---------------- SPLASH SCREEN ----------------
 @app.route("/")
-def login():
+def splash():
     return render_template("login.html")
+
 
 # ---------------- SIGNUP ----------------
 @app.route("/signup", methods=["POST"])
@@ -19,21 +19,23 @@ def signup():
     password = request.form.get("password")
 
     if username in users:
-        return "User already exists. Go back."
+        return "User already exists"
 
     users[username] = password
-    return redirect(url_for("login"))
+    return redirect(url_for("splash"))
+
 
 # ---------------- LOGIN ----------------
 @app.route("/login", methods=["POST"])
-def handle_login():
+def login():
     username = request.form.get("username")
     password = request.form.get("password")
 
     if username in users and users[username] == password:
         return redirect(url_for("home"))
     else:
-        return "Invalid username or password"
+        return "Invalid Username or Password"
+
 
 # ---------------- FORGOT PASSWORD ----------------
 @app.route("/forgot", methods=["POST"])
@@ -41,18 +43,21 @@ def forgot():
     username = request.form.get("username")
 
     if username in users:
-        return f"Your password is: {users[username]}"
+        return "Your password is: " + users[username]
     else:
         return "User not found"
+
 
 # ---------------- HOME ----------------
 @app.route("/home")
 def home():
     return render_template("index.html")
 
+
 # ---------------- CROWD ----------------
 @app.route("/crowd/<temple>")
 def crowd(temple):
+
     crowd_level = random.choice(["Low", "Medium", "High"])
 
     if crowd_level == "High":
@@ -63,25 +68,28 @@ def crowd(temple):
         suggestion = "Safe to visit"
 
     return jsonify({
-        "temple": temple.title(),
+        "temple": temple,
         "crowd_level": crowd_level,
         "suggestion": suggestion
     })
 
-# ---------------- PREDICT ----------------
+
+# ---------------- BEST TIME ----------------
 @app.route("/predict/<temple>")
 def predict(temple):
-    times = [
+
+    best = random.choice([
         "6 AM - Low Crowd",
+        "8 AM - Best Time",
         "2 PM - Moderate Crowd",
-        "8 PM - Low Crowd",
-        "12 PM - High Crowd"
-    ]
+        "8 PM - Peaceful Visit"
+    ])
 
     return jsonify({
-        "temple": temple.title(),
-        "best_time": random.choice(times)
+        "temple": temple,
+        "best_time": best
     })
 
+
 if __name__ == "__main__":
-    app.run()
+    app.run()   
