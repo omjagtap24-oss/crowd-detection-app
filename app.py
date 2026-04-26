@@ -1,36 +1,58 @@
-from flask import Flask, jsonify, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 import random
 
 app = Flask(__name__)
+app.secret_key = "secret123"
+
+# Simple user storage
+users = {}
 
 # ---------------- LOGIN PAGE ----------------
 @app.route("/")
 def login():
     return render_template("login.html")
 
+# ---------------- SIGNUP ----------------
+@app.route("/signup", methods=["POST"])
+def signup():
+    username = request.form.get("username")
+    password = request.form.get("password")
 
-# ---------------- HANDLE LOGIN ----------------
+    if username in users:
+        return "User already exists. Go back."
+
+    users[username] = password
+    return redirect(url_for("login"))
+
+# ---------------- LOGIN ----------------
 @app.route("/login", methods=["POST"])
 def handle_login():
     username = request.form.get("username")
     password = request.form.get("password")
 
-    if username and password:
+    if username in users and users[username] == password:
         return redirect(url_for("home"))
     else:
-        return "Please enter username and password"
+        return "Invalid username or password"
 
+# ---------------- FORGOT PASSWORD ----------------
+@app.route("/forgot", methods=["POST"])
+def forgot():
+    username = request.form.get("username")
 
-# ---------------- MAIN APP PAGE ----------------
+    if username in users:
+        return f"Your password is: {users[username]}"
+    else:
+        return "User not found"
+
+# ---------------- HOME ----------------
 @app.route("/home")
 def home():
     return render_template("index.html")
 
-
-# ---------------- CROWD API ----------------
+# ---------------- CROWD ----------------
 @app.route("/crowd/<temple>")
 def crowd(temple):
-
     crowd_level = random.choice(["Low", "Medium", "High"])
 
     if crowd_level == "High":
@@ -46,11 +68,9 @@ def crowd(temple):
         "suggestion": suggestion
     })
 
-
-# ---------------- BEST TIME API ----------------
+# ---------------- PREDICT ----------------
 @app.route("/predict/<temple>")
 def predict(temple):
-
     times = [
         "6 AM - Low Crowd",
         "2 PM - Moderate Crowd",
@@ -63,7 +83,5 @@ def predict(temple):
         "best_time": random.choice(times)
     })
 
-
-# ---------------- RUN APP ----------------
 if __name__ == "__main__":
     app.run()
