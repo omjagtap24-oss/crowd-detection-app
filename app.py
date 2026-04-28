@@ -1,75 +1,167 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+# app.py
+
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session
 import random
+import sqlite3
+from datetime import datetime
 
 app = Flask(__name__)
+app.secret_key = "pilgrimflow_secret"
 
-# Temporary user storage
-users = {}
 
-# ---------------- SPLASH SCREEN ----------------
+# ---------------- DATABASE ----------------
+def init_db():
+    conn = sqlite3.connect("pilgrimflow.db")
+    cur = conn.cursor()
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS users(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        password TEXT
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS searches(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT,
+        temple_name TEXT,
+        searched_at TEXT
+    )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+init_db()
+
+
+# ---------------- LOGIN PAGE ----------------
 @app.route("/")
-def splash():
+def home_login():
     return render_template("login.html")
 
 
 # ---------------- SIGNUP ----------------
 @app.route("/signup", methods=["POST"])
 def signup():
-    username = request.form.get("username")
-    password = request.form.get("password")
+    username = request.form["username"]
+    password = request.form["password"]
 
-    if username in users:
+    conn = sqlite3.connect("pilgrimflow.db")
+    cur = conn.cursor()
+
+    try:
+        cur.execute("INSERT INTO users(username,password) VALUES(?,?)",
+                    (username, password))
+        conn.commit()
+    except:
+        conn.close()
         return "User already exists"
 
-    users[username] = password
-    return redirect(url_for("splash"))
+    conn.close()
+    return redirect("/")
 
 
 # ---------------- LOGIN ----------------
 @app.route("/login", methods=["POST"])
 def login():
-    username = request.form.get("username")
-    password = request.form.get("password")
+    username = request.form["username"]
+    password = request.form["password"]
 
-    if username in users and users[username] == password:
-        return redirect(url_for("home"))
+    conn = sqlite3.connect("pilgrimflow.db")
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM users WHERE username=? AND password=?",
+                (username, password))
+    user = cur.fetchone()
+    conn.close()
+
+    if user:
+        session["user"] = username
+        return redirect("/dashboard")
     else:
-        return "Invalid Username or Password"
+        return "Invalid Login"
 
 
-# ---------------- FORGOT PASSWORD ----------------
-@app.route("/forgot", methods=["POST"])
-def forgot():
-    username = request.form.get("username")
+# ---------------- DASHBOARD ----------------
+@app.route("/dashboard")
+def dashboard():
+    if "user" not in session:
+        return redirect("/")
 
-    if username in users:
-        return "Your password is: " + users[username]
-    else:
-        return "User not found"
+    return render_template("index.html", username=session["user"])
 
 
-# ---------------- HOME ----------------
-@app.route("/home")
-def home():
-    return render_template("index.html")
+# ---------------- SEARCH TEMPLE ----------------
+@app.route("/search", methods=["POST"])
+def search():
+    if "user" not in session:
+        return redirect("/")
+
+    temple = request.form["temple"]
+
+    conn = sqlite3.connect("pilgrimflow.db")
+    cur = conn.cursor()
+
+    cur.execute(
+        "INSERT INTO searches(username, temple_name, searched_at) VALUES(?,?,?)",
+        (session["user"], temple, datetime.now().strftime("%d-%m-%Y %H:%M"))
+    )
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/dashboard")
+
+
+# ---------------- RECENTS ----------------
+@app.route("/recents")
+def recents():
+    if "user" not in session:
+        return jsonify([])
+
+    conn = sqlite3.connect("pilgrimflow.db")
+    cur = conn.cursor()
+
+    cur.execute("""
+    SELECT temple_name,searched_at
+    FROM searches
+    WHERE username=?
+    ORDER BY id DESC
+    LIMIT 5
+    """, (session["user"],))
+
+    data = cur.fetchall()
+    conn.close()
+
+    result = []
+    for row in data:
+        result.append({
+            "temple": row[0],
+            "time": row[1]
+        })
+
+    return jsonify(result)
 
 
 # ---------------- CROWD ----------------
 @app.route("/crowd/<temple>")
 def crowd(temple):
+    level = random.choice(["Low", "Medium", "High"])
 
-    crowd_level = random.choice(["Low", "Medium", "High"])
-
-    if crowd_level == "High":
+    if level == "High":
         suggestion = "Avoid visiting now"
-    elif crowd_level == "Medium":
+    elif level == "Medium":
         suggestion = "Visit after some time"
     else:
         suggestion = "Safe to visit"
 
     return jsonify({
         "temple": temple,
-        "crowd_level": crowd_level,
+        "crowd_level": level,
         "suggestion": suggestion
     })
 
@@ -77,7 +169,6 @@ def crowd(temple):
 # ---------------- BEST TIME ----------------
 @app.route("/predict/<temple>")
 def predict(temple):
-
     best = random.choice([
         "6 AM - Low Crowd",
         "8 AM - Best Time",
@@ -91,5 +182,12 @@ def predict(temple):
     })
 
 
+# ---------------- LOGOUT ----------------
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
+
+
 if __name__ == "__main__":
-    app.run()   
+    app.run()
