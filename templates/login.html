@@ -11,7 +11,7 @@ background:#0f172a;
 overflow:hidden;
 }
 
-/* Splash Screen */
+/* Splash */
 #splash{
 position:fixed;
 width:100%;
@@ -35,17 +35,16 @@ font-size:18px;
 opacity:0.9;
 }
 
-/* Login */
+/* Main */
 #main{
 display:none;
 height:100vh;
-display:flex;
 justify-content:center;
 align-items:center;
 }
 
 .box{
-width:330px;
+width:340px;
 background:white;
 padding:30px;
 border-radius:15px;
@@ -54,8 +53,8 @@ text-align:center;
 }
 
 .box h2{
-margin-bottom:20px;
 color:#2563eb;
+margin-bottom:20px;
 }
 
 input{
@@ -83,8 +82,8 @@ display:block;
 margin-top:10px;
 color:#2563eb;
 cursor:pointer;
-text-decoration:none;
 font-size:14px;
+text-decoration:none;
 }
 
 .hidden{
@@ -101,7 +100,7 @@ display:none;
 <p>Smart Temple Crowd Guidance</p>
 </div>
 
-<!-- Login Page -->
+<!-- Main -->
 <div id="main">
 
 <div class="box">
@@ -155,21 +154,21 @@ document.getElementById("main").style.display="flex";
 },2500);
 
 function showSignup(){
-loginBox.style.display="none";
-signupBox.style.display="block";
-forgotBox.style.display="none";
+document.getElementById("loginBox").style.display="none";
+document.getElementById("signupBox").style.display="block";
+document.getElementById("forgotBox").style.display="none";
 }
 
 function showForgot(){
-loginBox.style.display="none";
-signupBox.style.display="none";
-forgotBox.style.display="block";
+document.getElementById("loginBox").style.display="none";
+document.getElementById("signupBox").style.display="none";
+document.getElementById("forgotBox").style.display="block";
 }
 
 function showLogin(){
-loginBox.style.display="block";
-signupBox.style.display="none";
-forgotBox.style.display="none";
+document.getElementById("loginBox").style.display="block";
+document.getElementById("signupBox").style.display="none";
+document.getElementById("forgotBox").style.display="none";
 }
 </script>
 
