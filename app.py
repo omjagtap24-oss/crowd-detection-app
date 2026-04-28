@@ -1,12 +1,10 @@
-# app.py
-
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session
-import random
 import sqlite3
+import random
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = "pilgrimflow_secret"
+app.secret_key = "pilgrimflow_secret_key"
 
 
 # ---------------- DATABASE ----------------
@@ -34,13 +32,12 @@ def init_db():
     conn.commit()
     conn.close()
 
-
 init_db()
 
 
 # ---------------- LOGIN PAGE ----------------
 @app.route("/")
-def home_login():
+def home():
     return render_template("login.html")
 
 
@@ -54,8 +51,10 @@ def signup():
     cur = conn.cursor()
 
     try:
-        cur.execute("INSERT INTO users(username,password) VALUES(?,?)",
-                    (username, password))
+        cur.execute(
+            "INSERT INTO users(username,password) VALUES(?,?)",
+            (username, password)
+        )
         conn.commit()
     except:
         conn.close()
@@ -74,8 +73,11 @@ def login():
     conn = sqlite3.connect("pilgrimflow.db")
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM users WHERE username=? AND password=?",
-                (username, password))
+    cur.execute(
+        "SELECT * FROM users WHERE username=? AND password=?",
+        (username, password)
+    )
+
     user = cur.fetchone()
     conn.close()
 
@@ -83,7 +85,29 @@ def login():
         session["user"] = username
         return redirect("/dashboard")
     else:
-        return "Invalid Login"
+        return "Invalid Username or Password"
+
+
+# ---------------- FORGOT PASSWORD ----------------
+@app.route("/forgot", methods=["POST"])
+def forgot():
+    username = request.form["username"]
+
+    conn = sqlite3.connect("pilgrimflow.db")
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT password FROM users WHERE username=?",
+        (username,)
+    )
+
+    user = cur.fetchone()
+    conn.close()
+
+    if user:
+        return "Your password is: " + user[0]
+    else:
+        return "User not found"
 
 
 # ---------------- DASHBOARD ----------------
@@ -92,10 +116,13 @@ def dashboard():
     if "user" not in session:
         return redirect("/")
 
-    return render_template("index.html", username=session["user"])
+    return render_template(
+        "index.html",
+        username=session["user"]
+    )
 
 
-# ---------------- SEARCH TEMPLE ----------------
+# ---------------- SAVE SEARCH ----------------
 @app.route("/search", methods=["POST"])
 def search():
     if "user" not in session:
@@ -106,10 +133,14 @@ def search():
     conn = sqlite3.connect("pilgrimflow.db")
     cur = conn.cursor()
 
-    cur.execute(
-        "INSERT INTO searches(username, temple_name, searched_at) VALUES(?,?,?)",
-        (session["user"], temple, datetime.now().strftime("%d-%m-%Y %H:%M"))
-    )
+    cur.execute("""
+    INSERT INTO searches(username, temple_name, searched_at)
+    VALUES(?,?,?)
+    """, (
+        session["user"],
+        temple,
+        datetime.now().strftime("%d-%m-%Y %H:%M")
+    ))
 
     conn.commit()
     conn.close()
@@ -127,24 +158,24 @@ def recents():
     cur = conn.cursor()
 
     cur.execute("""
-    SELECT temple_name,searched_at
+    SELECT temple_name, searched_at
     FROM searches
     WHERE username=?
     ORDER BY id DESC
     LIMIT 5
     """, (session["user"],))
 
-    data = cur.fetchall()
+    rows = cur.fetchall()
     conn.close()
 
-    result = []
-    for row in data:
-        result.append({
+    data = []
+    for row in rows:
+        data.append({
             "temple": row[0],
             "time": row[1]
         })
 
-    return jsonify(result)
+    return jsonify(data)
 
 
 # ---------------- CROWD ----------------
