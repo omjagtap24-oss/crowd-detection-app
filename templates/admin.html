@@ -11,23 +11,35 @@ color:white;
 padding:30px;
 }
 
-table{
-width:100%;
-border-collapse:collapse;
-background:white;
-color:black;
-margin-bottom:30px;
+h1 {
+    text-align: center;
 }
 
-th,td{
-padding:10px;
-border:1px solid #ccc;
-text-align:center;
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    color: black;
+    margin-bottom: 30px;
 }
 
-th{
-background:#2563eb;
-color:white;
+th, td {
+    padding: 10px;
+    border: 1px solid #ccc;
+    text-align: center;
+}
+
+th {
+    background: #2563eb;
+    color: white;
+}
+
+a {
+    text-decoration: none;
+    color: white;
+    background-color: #2563eb;
+    padding: 10px;
+    border-radius: 5px;
 }
 </style>
 </head>
@@ -46,9 +58,9 @@ color:white;
 
 {% for row in users %}
 <tr>
-<td>{{row[0]}}</td>
-<td>{{row[1]}}</td>
-<td>{{row[2]}}</td>
+<td>{{ row[0] }}</td>
+<td>{{ row[1] }}</td>
+<td>{{ row[2] }}</td>
 </tr>
 {% endfor %}
 </table>
@@ -64,12 +76,14 @@ color:white;
 
 {% for row in history %}
 <tr>
-<td>{{row[0]}}</td>
-<td>{{row[1]}}</td>
-<td>{{row[2]}}</td>
+<td>{{ row[0] }}</td>
+<td>{{ row[1] }}</td>
+<td>{{ row[2] }}</td>
 </tr>
 {% endfor %}
 </table>
+
+<a href="/logout">Logout</a>
 
 </body>
 </html>
