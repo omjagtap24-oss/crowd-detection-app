@@ -170,7 +170,6 @@ def history():
 # ---------------- CROWD API ----------------
 @app.route("/crowd/<temple>")
 def crowd(temple):
-
     level = random.choice(["Low", "Medium", "High"])
 
     if level == "High":
@@ -190,7 +189,6 @@ def crowd(temple):
 # ---------------- BEST TIME API ----------------
 @app.route("/predict/<temple>")
 def predict(temple):
-
     best = random.choice([
         "6 AM - Low Crowd",
         "8 AM - Best Time",
@@ -202,6 +200,31 @@ def predict(temple):
         "temple": temple,
         "best_time": best
     })
+
+
+# ---------------- TEMPLE SEARCH API ----------------
+@app.route("/search_temple", methods=["GET"])
+def search_temple():
+    query = request.args.get("query")
+
+    if not query:
+        return jsonify([])
+
+    response = []
+
+    # Fetch temple details from OpenStreetMap API
+    import requests
+    url = f"https://nominatim.openstreetmap.org/search?format=json&q={query} temple India&limit=5"
+    data = requests.get(url).json()
+
+    for place in data:
+        response.append({
+            "name": place["display_name"],
+            "lat": place["lat"],
+            "lon": place["lon"]
+        })
+
+    return jsonify(response)
 
 
 # ---------------- LOGOUT ----------------
