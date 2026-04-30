@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Panel</title>
+
+<style>
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+padding:30px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+color:black;
+margin-bottom:30px;
+}
+
+th,td{
+padding:10px;
+border:1px solid #ccc;
+text-align:center;
+}
+
+th{
+background:#2563eb;
+color:white;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🛕 PilgrimFlow Admin Panel</h1>
+
+<h2>Users</h2>
+<table>
+<tr>
+<th>ID</th>
+<th>Username</th>
+<th>Password</th>
+</tr>
+
+{% for row in users %}
+<tr>
+<td>{{row[0]}}</td>
+<td>{{row[1]}}</td>
+<td>{{row[2]}}</td>
+</tr>
+{% endfor %}
+</table>
+
+<h2>Search History</h2>
+
+<table>
+<tr>
+<th>ID</th>
+<th>Username</th>
+<th>Temple</th>
+</tr>
+
+{% for row in history %}
+<tr>
+<td>{{row[0]}}</td>
+<td>{{row[1]}}</td>
+<td>{{row[2]}}</td>
+</tr>
+{% endfor %}
+</table>
+
+</body>
+</html>
