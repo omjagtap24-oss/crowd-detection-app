@@ -156,13 +156,17 @@ def predict(temple):
 # ---------------- ADMIN PANEL ----------------
 @app.route('/admin')
 def admin():
+    if 'user' not in session or session['user'] != 'admin':  # Only allow admin to access
+        return redirect('/')
 
     conn = sqlite3.connect("pilgrimflow.db")
     cur = conn.cursor()
 
+    # Fetch users from the users table
     cur.execute("SELECT * FROM users")
     users = cur.fetchall()
 
+    # Fetch search history from the history table
     cur.execute("SELECT * FROM history")
     history = cur.fetchall()
 
