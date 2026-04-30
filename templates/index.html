@@ -217,7 +217,7 @@
     function searchTemple() {
         var query = document.getElementById("search").value;
 
-        fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + query + " temple india")
+        fetch("/search_temple?query=" + query)
         .then(res => res.json())
         .then(data => {
 
@@ -247,7 +247,7 @@
             return;
         }
 
-        fetch("https://nominatim.openstreetmap.org/search?format=json&limit=5&q=" + query + " temple India")
+        fetch("/search_temple?query=" + query)
         .then(res => res.json())
         .then(data => {
 
@@ -256,8 +256,8 @@
             data.forEach(place => {
                 suggestions += `
                     <div style="padding:5px;cursor:pointer;"
-                    onclick="selectSuggestion('${place.display_name}', ${place.lat}, ${place.lon})">
-                    ${place.display_name}
+                    onclick="selectSuggestion('${place.name}', ${place.lat}, ${place.lon})">
+                    ${place.name}
                     </div>
                 `;
             });
