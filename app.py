@@ -1,15 +1,17 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, session, jsonify
 import sqlite3
 import random
 
 app = Flask(__name__)
-app.secret_key = "pilgrimflow"  # Secret key for session management
+app.secret_key = "pilgrimflow_secret"
 
-# ---------------- DATABASE ----------------
+
+# ---------------- DATABASE SETUP ----------------
 def init_db():
     conn = sqlite3.connect("pilgrimflow.db")
     cur = conn.cursor()
 
+    # Users Table
     cur.execute("""
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,6 +20,7 @@ def init_db():
     )
     """)
 
+    # Search History Table
     cur.execute("""
     CREATE TABLE IF NOT EXISTS history(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,157 +32,185 @@ def init_db():
     conn.commit()
     conn.close()
 
+
 init_db()
 
-# ---------------- LOGIN PAGE ----------------
-@app.route('/')
+
+# ---------------- HOME / LOGIN PAGE ----------------
+@app.route("/")
 def home():
     return render_template("login.html")
 
+
 # ---------------- SIGNUP ----------------
-@app.route('/signup', methods=['POST'])
+@app.route("/signup", methods=["POST"])
 def signup():
-    username = request.form['username']
-    password = request.form['password']
+    username = request.form["username"]
+    password = request.form["password"]
 
     conn = sqlite3.connect("pilgrimflow.db")
     cur = conn.cursor()
 
     try:
-        cur.execute("INSERT INTO users(username,password) VALUES (?,?)",
-                    (username,password))
+        cur.execute(
+            "INSERT INTO users(username,password) VALUES(?,?)",
+            (username, password)
+        )
         conn.commit()
     except:
         conn.close()
-        return "Username already exists"
+        return "User already exists"
 
     conn.close()
-    return redirect('/')
+    return redirect("/")
+
 
 # ---------------- LOGIN ----------------
-@app.route('/login', methods=['POST'])
+@app.route("/login", methods=["POST"])
 def login():
-    username = request.form['username']
-    password = request.form['password']
+    username = request.form["username"]
+    password = request.form["password"]
 
     conn = sqlite3.connect("pilgrimflow.db")
     cur = conn.cursor()
 
-    # Check if the user exists in the users table
-    cur.execute("SELECT * FROM users WHERE username=? AND password=?",
-                (username,password))
+    cur.execute(
+        "SELECT * FROM users WHERE username=? AND password=?",
+        (username, password)
+    )
 
     user = cur.fetchone()
-
-    # Allow admin login with a hardcoded admin password
-    if user:
-        session['user'] = username
-        return redirect('/dashboard')
-
-    # Allow admin login by checking hardcoded credentials for admin
-    if username == 'admin' and password == 'secureAdminPassword123':  # New secure admin password
-        session['user'] = 'admin'
-        return redirect('/admin')
-
     conn.close()
-    return "Invalid Login"
+
+    if user:
+        session["user"] = username
+        return redirect("/dashboard")
+    else:
+        return "Invalid Username or Password"
+
+
+# ---------------- FORGOT PASSWORD ----------------
+@app.route("/forgot", methods=["POST"])
+def forgot():
+    username = request.form["username"]
+
+    conn = sqlite3.connect("pilgrimflow.db")
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT password FROM users WHERE username=?",
+        (username,)
+    )
+
+    user = cur.fetchone()
+    conn.close()
+
+    if user:
+        return "Your password is: " + user[0]
+    else:
+        return "User not found"
+
 
 # ---------------- DASHBOARD ----------------
-@app.route('/dashboard')
+@app.route("/dashboard")
 def dashboard():
-    if 'user' not in session:
-        return redirect('/')
-    return render_template("index.html", username=session['user'])
+    if "user" not in session:
+        return redirect("/")
 
-# ---------------- LOGOUT ----------------
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect('/')
+    return render_template("index.html")
 
-# ---------------- SAVE SEARCH ----------------
-@app.route('/save_search/<temple>')
+
+# ---------------- SAVE SEARCH HISTORY ----------------
+@app.route("/save_search/<temple>")
 def save_search(temple):
-    if 'user' not in session:
-        return jsonify([])
+    if "user" in session:
 
-    username = session['user']
+        conn = sqlite3.connect("pilgrimflow.db")
+        cur = conn.cursor()
 
-    conn = sqlite3.connect("pilgrimflow.db")
-    cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO history(username, temple) VALUES(?,?)",
+            (session["user"], temple)
+        )
 
-    cur.execute("INSERT INTO history(username, temple) VALUES (?,?)",
-                (username, temple))
+        conn.commit()
+        conn.close()
 
-    conn.commit()
-    conn.close()
+    return "saved"
 
-    return jsonify({"status":"saved"})
 
 # ---------------- GET HISTORY ----------------
-@app.route('/history')
+@app.route("/history")
 def history():
-    if 'user' not in session:
+    if "user" not in session:
         return jsonify([])
-
-    username = session['user']
 
     conn = sqlite3.connect("pilgrimflow.db")
     cur = conn.cursor()
 
-    cur.execute("SELECT temple FROM history WHERE username=? ORDER BY id DESC LIMIT 5",
-                (username,))
-    data = cur.fetchall()
+    cur.execute("""
+    SELECT temple
+    FROM history
+    WHERE username=?
+    ORDER BY id DESC
+    LIMIT 5
+    """, (session["user"],))
 
+    rows = cur.fetchall()
     conn.close()
 
-    return jsonify([x[0] for x in data])
+    data = []
 
-# ---------------- CROWD ----------------
-@app.route('/crowd/<temple>')
+    for row in rows:
+        data.append(row[0])
+
+    return jsonify(data)
+
+
+# ---------------- CROWD API ----------------
+@app.route("/crowd/<temple>")
 def crowd(temple):
+
     level = random.choice(["Low", "Medium", "High"])
 
-    suggestion = {
-        "Low":"Good time to visit",
-        "Medium":"Moderate rush",
-        "High":"Avoid peak hours"
-    }
+    if level == "High":
+        suggestion = "Avoid visiting now"
+    elif level == "Medium":
+        suggestion = "Visit after some time"
+    else:
+        suggestion = "Safe to visit"
 
     return jsonify({
         "temple": temple,
         "crowd_level": level,
-        "suggestion": suggestion[level]
+        "suggestion": suggestion
     })
 
-# ---------------- BEST TIME ----------------
-@app.route('/predict/<temple>')
+
+# ---------------- BEST TIME API ----------------
+@app.route("/predict/<temple>")
 def predict(temple):
+
+    best = random.choice([
+        "6 AM - Low Crowd",
+        "8 AM - Best Time",
+        "2 PM - Moderate Crowd",
+        "8 PM - Peaceful Visit"
+    ])
+
     return jsonify({
         "temple": temple,
-        "best_time": "6 AM to 9 AM"
+        "best_time": best
     })
 
-# ---------------- ADMIN PANEL ----------------
-@app.route('/admin')
-def admin():
-    if 'user' not in session or session['user'] != 'admin':  # Only allow admin to access
-        return redirect('/')  # Redirect to login if not admin
 
-    conn = sqlite3.connect("pilgrimflow.db")
-    cur = conn.cursor()
+# ---------------- LOGOUT ----------------
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
 
-    # Fetch users from the users table
-    cur.execute("SELECT * FROM users")
-    users = cur.fetchall()
 
-    # Fetch search history from the history table
-    cur.execute("SELECT * FROM history")
-    history = cur.fetchall()
-
-    conn.close()
-
-    return render_template("admin.html", users=users, history=history)
-
+# ---------------- RUN APP ----------------
 if __name__ == "__main__":
     app.run(debug=True)
