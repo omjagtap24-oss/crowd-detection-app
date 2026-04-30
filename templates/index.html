@@ -1,140 +1,83 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PilgrimFlow</title>
+<title>PilgrimFlow</title>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-            background: #0f172a;
-            color: white;
-        }
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:#0f172a;
+color:white;
+}
 
-        #map {
-            height: 100vh;
-            width: 100%;
-        }
+#map{
+height:100vh;
+width:100%;
+}
 
-        .top-bar {
-            position: absolute;
-            top: 0;
-            width: 100%;
-            padding: 12px;
-            text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-        }
+.top{
+position:absolute;
+top:0;
+width:100%;
+padding:12px;
+text-align:center;
+background:rgba(0,0,0,0.6);
+z-index:1000;
+}
 
-        .panel {
-            position: absolute;
-            top: 70px;
-            left: 20px;
-            width: 320px;
-            padding: 15px;
-            border-radius: 15px;
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(15px);
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-            z-index: 1000;
-            max-height: 85vh;
-            overflow-y: auto;
-        }
+.panel{
+position:absolute;
+top:60px;
+left:20px;
+width:320px;
+padding:15px;
+border-radius:15px;
+background:rgba(255,255,255,0.12);
+z-index:1000;
+}
 
-        input {
-            width: 100%;
-            padding: 10px;
-            border-radius: 8px;
-            border: none;
-            margin-bottom: 5px;
-        }
+input,button{
+width:100%;
+padding:10px;
+margin-top:8px;
+border:none;
+border-radius:8px;
+}
 
-        button {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
+#history{
+margin-top:10px;
+font-size:14px;
+}
 
-        .search-btn { background: #3b82f6; color: white; }
-        .crowd-btn { background: #ef4444; color: white; }
-        .predict-btn { background: #22c55e; color: white; }
-
-        #suggestions {
-            background: white;
-            color: black;
-            border-radius: 8px;
-            max-height: 120px;
-            overflow-y: auto;
-        }
-
-        #result {
-            margin-top: 10px;
-            font-size: 14px;
-        }
-
-        .history-box{
-            margin-top:15px;
-            background: rgba(255,255,255,0.08);
-            padding:10px;
-            border-radius:10px;
-        }
-
-        .history-box h4{
-            margin:0 0 10px 0;
-            color:#facc15;
-        }
-
-        .history-item{
-            padding:6px;
-            margin-bottom:5px;
-            background:rgba(255,255,255,0.08);
-            border-radius:8px;
-            font-size:13px;
-            cursor:pointer;
-        }
-
-        .history-item:hover{
-            background:rgba(255,255,255,0.18);
-        }
-    </style>
+#result{
+margin-top:10px;
+font-size:14px;
+}
+</style>
 </head>
 
 <body>
 
-<div class="top-bar">
-    🛕 PilgrimFlow
+<div class="top">
+🛕 PilgrimFlow | Welcome {{username}}
+<a href="/logout" style="color:white;float:right;margin-right:20px;">Logout</a>
 </div>
 
 <div class="panel">
 
-    🔍 <input type="text" id="search" placeholder="Search temple..." oninput="showSuggestions()">
-    <div id="suggestions"></div>
+<input type="text" id="search" placeholder="Search temple">
 
-    <button class="search-btn" onclick="searchTemple()">Search</button>
+<button onclick="searchTemple()">Search Temple</button>
+<button onclick="getCrowd()">Check Crowd</button>
+<button onclick="bestTime()">Best Time</button>
+<button onclick="loadHistory()">Recent Searches</button>
 
-    <button onclick="useLocation()" style="background:#06b6d4;color:white;">
-        📍 Use My Location
-    </button>
-
-    <button class="crowd-btn" onclick="getCrowd()">Check Crowd</button>
-    <button class="predict-btn" onclick="getPrediction()">Best Time</button>
-
-    <div id="result"></div>
-
-    <!-- RECENT SEARCHES -->
-    <div class="history-box">
-        <h4>🕘 Recent Searches</h4>
-        <div id="historyList">No searches yet</div>
-    </div>
+<div id="result"></div>
+<div id="history"></div>
 
 </div>
 
@@ -143,173 +86,88 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
-    var map = L.map('map').setView([20.5937, 78.9629], 5);
+var map = L.map('map').setView([20.5937,78.9629],5)
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-    }).addTo(map);
+L.tileLayer(
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+).addTo(map)
 
-    var selectedTemple = "Shirdi";
+var selectedTemple="Shirdi"
 
-    function getColor(level) {
-        if (level === "High") return "#ef4444";
-        if (level === "Medium") return "#f59e0b";
-        return "#22c55e";
-    }
+function searchTemple(){
 
-    function showResult(data) {
-        document.getElementById("result").innerHTML =
-            "<b>" + data.temple + "</b><br>" +
-            "Crowd: <span style='color:" + getColor(data.crowd_level) + "'>" +
-            data.crowd_level + "</span><br>" +
-            data.suggestion;
-    }
+let temple=document.getElementById("search").value
+selectedTemple=temple
 
-    // SAVE SEARCH TO DATABASE
-    function saveSearch(name){
-        fetch("/save_search/" + encodeURIComponent(name));
-        loadHistory();
-    }
+fetch("https://nominatim.openstreetmap.org/search?format=json&q="+temple+" temple india")
+.then(res=>res.json())
+.then(data=>{
 
-    // LOAD HISTORY
-    function loadHistory(){
-        fetch("/history")
-        .then(res => res.json())
-        .then(data => {
+if(data.length>0){
 
-            let box = document.getElementById("historyList");
+let lat=data[0].lat
+let lon=data[0].lon
 
-            if(data.length === 0){
-                box.innerHTML = "No searches yet";
-                return;
-            }
+map.setView([lat,lon],13)
 
-            let html = "";
+L.marker([lat,lon]).addTo(map)
+.bindPopup(temple)
+.openPopup()
 
-            data.forEach(item => {
-                html += `
-                    <div class="history-item"
-                    onclick="searchFromHistory('${item}')">
-                    ${item}
-                    </div>
-                `;
-            });
+fetch('/save_search/'+temple)
 
-            box.innerHTML = html;
-        });
-    }
+}
 
-    function searchFromHistory(name){
-        document.getElementById("search").value = name;
-        searchTemple();
-    }
+})
 
-    // SEARCH
-    function searchTemple() {
-        var query = document.getElementById("search").value;
+}
 
-        fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + query + " temple india")
-        .then(res => res.json())
-        .then(data => {
+function getCrowd(){
 
-            if (data.length > 0) {
-                var lat = data[0].lat;
-                var lon = data[0].lon;
+fetch('/crowd/'+selectedTemple)
+.then(res=>res.json())
+.then(data=>{
 
-                map.setView([lat, lon], 13);
+document.getElementById("result").innerHTML=
+"<b>"+data.temple+"</b><br>"+
+"Crowd: "+data.crowd_level+"<br>"+
+data.suggestion
 
-                L.marker([lat, lon]).addTo(map)
-                    .bindPopup(query)
-                    .openPopup();
+})
 
-                selectedTemple = query;
+}
 
-                saveSearch(query);
-            }
-        });
-    }
+function bestTime(){
 
-    // AUTO SUGGESTIONS
-    function showSuggestions() {
-        var query = document.getElementById("search").value;
+fetch('/predict/'+selectedTemple)
+.then(res=>res.json())
+.then(data=>{
 
-        if (query.length < 3) {
-            document.getElementById("suggestions").innerHTML = "";
-            return;
-        }
+document.getElementById("result").innerHTML=
+"<b>"+data.temple+"</b><br>"+
+"Best Time: "+data.best_time
 
-        fetch("https://nominatim.openstreetmap.org/search?format=json&limit=5&q=" + query + " temple India")
-        .then(res => res.json())
-        .then(data => {
+})
 
-            let suggestions = "";
+}
 
-            data.forEach(place => {
-                suggestions += `
-                    <div style="padding:5px;cursor:pointer;"
-                    onclick="selectSuggestion('${place.display_name}', ${place.lat}, ${place.lon})">
-                    ${place.display_name}
-                    </div>
-                `;
-            });
+function loadHistory(){
 
-            document.getElementById("suggestions").innerHTML = suggestions;
-        });
-    }
+fetch('/history')
+.then(res=>res.json())
+.then(data=>{
 
-    function selectSuggestion(name, lat, lon) {
-        document.getElementById("search").value = name;
-        document.getElementById("suggestions").innerHTML = "";
+let html="<b>Recent Searches:</b><br>"
 
-        map.setView([lat, lon], 13);
+data.forEach(x=>{
+html += x+"<br>"
+})
 
-        L.marker([lat, lon]).addTo(map)
-            .bindPopup(name)
-            .openPopup();
+document.getElementById("history").innerHTML=html
 
-        selectedTemple = name;
+})
 
-        saveSearch(name);
-    }
-
-    // LOCATION
-    function useLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function(position) {
-
-                var lat = position.coords.latitude;
-                var lon = position.coords.longitude;
-
-                map.setView([lat, lon], 13);
-
-                L.marker([lat, lon]).addTo(map)
-                    .bindPopup("You are here")
-                    .openPopup();
-
-                selectedTemple = "Nearby Temple";
-            });
-        }
-    }
-
-    // CROWD
-    function getCrowd() {
-        fetch('/crowd/' + selectedTemple)
-        .then(res => res.json())
-        .then(data => showResult(data));
-    }
-
-    // BEST TIME
-    function getPrediction() {
-        fetch('/predict/' + selectedTemple)
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById("result").innerHTML =
-                "<b>" + data.temple + "</b><br>" +
-                "Best Time: " + data.best_time;
-        });
-    }
-
-    loadHistory();
+}
 </script>
 
 </body>
