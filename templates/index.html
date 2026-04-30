@@ -2,9 +2,7 @@
 <html>
 <head>
     <title>PilgrimFlow</title>
-
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-
     <style>
         body {
             margin: 0;
@@ -52,6 +50,8 @@
             border-radius: 8px;
             border: none;
             margin-bottom: 5px;
+            background: #1c1c1c;
+            color: white;
         }
 
         button {
@@ -62,11 +62,17 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
+            transition: background-color 0.3s ease;
         }
 
         .search-btn { background: #3b82f6; color: white; }
+        .search-btn:hover { background: #2563eb; }
+
         .crowd-btn { background: #ef4444; color: white; }
+        .crowd-btn:hover { background: #dc2626; }
+
         .predict-btn { background: #22c55e; color: white; }
+        .predict-btn:hover { background: #16a34a; }
 
         #suggestions {
             background: white;
@@ -100,6 +106,7 @@
             border-radius:8px;
             font-size:13px;
             cursor:pointer;
+            color: white;
         }
 
         .history-item:hover{
@@ -208,7 +215,7 @@
     function searchTemple() {
         var query = document.getElementById("search").value;
 
-        fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + query + " temple india")
+        fetch("/search_temple?query=" + query)
         .then(res => res.json())
         .then(data => {
 
@@ -238,7 +245,7 @@
             return;
         }
 
-        fetch("https://nominatim.openstreetmap.org/search?format=json&limit=5&q=" + query + " temple India")
+        fetch("/search_temple?query=" + query)
         .then(res => res.json())
         .then(data => {
 
@@ -247,8 +254,8 @@
             data.forEach(place => {
                 suggestions += `
                     <div style="padding:5px;cursor:pointer;"
-                    onclick="selectSuggestion('${place.display_name}', ${place.lat}, ${place.lon})">
-                    ${place.display_name}
+                    onclick="selectSuggestion('${place.name}', ${place.lat}, ${place.lon})">
+                    ${place.name}
                     </div>
                 `;
             });
