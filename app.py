@@ -3,7 +3,7 @@ import sqlite3
 import random
 
 app = Flask(__name__)
-app.secret_key = "pilgrimflow"
+app.secret_key = "pilgrimflow"  # Secret key for session management
 
 # ---------------- DATABASE ----------------
 def init_db():
@@ -65,17 +65,24 @@ def login():
     conn = sqlite3.connect("pilgrimflow.db")
     cur = conn.cursor()
 
+    # Check if the user exists in the users table
     cur.execute("SELECT * FROM users WHERE username=? AND password=?",
                 (username,password))
 
     user = cur.fetchone()
-    conn.close()
 
+    # Allow admin login with a hardcoded admin password
     if user:
         session['user'] = username
         return redirect('/dashboard')
-    else:
-        return "Invalid Login"
+
+    # Allow admin login by checking hardcoded credentials for admin
+    if username == 'admin' and password == 'secureAdminPassword123':  # New secure admin password
+        session['user'] = 'admin'
+        return redirect('/admin')
+
+    conn.close()
+    return "Invalid Login"
 
 # ---------------- DASHBOARD ----------------
 @app.route('/dashboard')
@@ -157,7 +164,7 @@ def predict(temple):
 @app.route('/admin')
 def admin():
     if 'user' not in session or session['user'] != 'admin':  # Only allow admin to access
-        return redirect('/')
+        return redirect('/')  # Redirect to login if not admin
 
     conn = sqlite3.connect("pilgrimflow.db")
     cur = conn.cursor()
@@ -172,9 +179,7 @@ def admin():
 
     conn.close()
 
-    return render_template("admin.html",
-                           users=users,
-                           history=history)
+    return render_template("admin.html", users=users, history=history)
 
 if __name__ == "__main__":
     app.run(debug=True)
