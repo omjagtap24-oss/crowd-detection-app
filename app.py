@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, session, jsonify
 import sqlite3
 import random
+import requests
 
 app = Flask(__name__)
 app.secret_key = "pilgrimflow_secret"
@@ -213,7 +214,6 @@ def search_temple():
     response = []
 
     # Fetch temple details from OpenStreetMap API
-    import requests
     url = f"https://nominatim.openstreetmap.org/search?format=json&q={query} temple India&limit=5"
     data = requests.get(url).json()
 
