@@ -90,139 +90,38 @@ def login():
         return "Invalid Username or Password"
 
 
-# ---------------- FORGOT PASSWORD ----------------
-@app.route("/forgot", methods=["POST"])
-def forgot():
-    username = request.form["username"]
-
-    conn = sqlite3.connect("pilgrimflow.db")
-    cur = conn.cursor()
-
-    cur.execute(
-        "SELECT password FROM users WHERE username=?",
-        (username,)
-    )
-
-    user = cur.fetchone()
-    conn.close()
-
-    if user:
-        return "Your password is: " + user[0]
-    else:
-        return "User not found"
-
-
-# ---------------- DASHBOARD ----------------
-@app.route("/dashboard")
-def dashboard():
-    if "user" not in session:
-        return redirect("/")
-
-    return render_template("index.html")
-
-
-# ---------------- SAVE SEARCH HISTORY ----------------
-@app.route("/save_search/<temple>")
-def save_search(temple):
-    if "user" in session:
-
-        conn = sqlite3.connect("pilgrimflow.db")
-        cur = conn.cursor()
-
-        cur.execute(
-            "INSERT INTO history(username, temple) VALUES(?,?)",
-            (session["user"], temple)
-        )
-
-        conn.commit()
-        conn.close()
-
-    return "saved"
-
-
-# ---------------- GET HISTORY ----------------
-@app.route("/history")
-def history():
-    if "user" not in session:
-        return jsonify([])
-
-    conn = sqlite3.connect("pilgrimflow.db")
-    cur = conn.cursor()
-
-    cur.execute("""
-    SELECT temple
-    FROM history
-    WHERE username=?
-    ORDER BY id DESC
-    LIMIT 5
-    """, (session["user"],))
-
-    rows = cur.fetchall()
-    conn.close()
-
-    data = []
-
-    for row in rows:
-        data.append(row[0])
-
-    return jsonify(data)
-
-
-# ---------------- CROWD API ----------------
-@app.route("/crowd/<temple>")
-def crowd(temple):
-    level = random.choice(["Low", "Medium", "High"])
-
-    if level == "High":
-        suggestion = "Avoid visiting now"
-    elif level == "Medium":
-        suggestion = "Visit after some time"
-    else:
-        suggestion = "Safe to visit"
-
-    return jsonify({
-        "temple": temple,
-        "crowd_level": level,
-        "suggestion": suggestion
-    })
-
-
-# ---------------- BEST TIME API ----------------
-@app.route("/predict/<temple>")
-def predict(temple):
-    best = random.choice([
-        "6 AM - Low Crowd",
-        "8 AM - Best Time",
-        "2 PM - Moderate Crowd",
-        "8 PM - Peaceful Visit"
-    ])
-
-    return jsonify({
-        "temple": temple,
-        "best_time": best
-    })
-
-
-# ---------------- TEMPLE SEARCH API ----------------
+# ---------------- SEARCH TEMPLE ----------------
 @app.route("/search_temple", methods=["GET"])
 def search_temple():
     query = request.args.get("query")
-
+    
     if not query:
         return jsonify([])
 
+    # Debugging - print the search term
+    print(f"Searching for temple: {query}")
+    
     response = []
 
     # Fetch temple details from OpenStreetMap API
     url = f"https://nominatim.openstreetmap.org/search?format=json&q={query} temple India&limit=5"
-    data = requests.get(url).json()
+    
+    # Try to get data from OpenStreetMap
+    try:
+        data = requests.get(url).json()
 
-    for place in data:
-        response.append({
-            "name": place["display_name"],
-            "lat": place["lat"],
-            "lon": place["lon"]
-        })
+        # Debugging - print API response
+        print(f"API Response: {data}")
+
+        for place in data:
+            response.append({
+                "name": place["display_name"],
+                "lat": place["lat"],
+                "lon": place["lon"]
+            })
+    except Exception as e:
+        print(f"Error fetching data: {e}")
+        return jsonify([])
 
     return jsonify(response)
 
