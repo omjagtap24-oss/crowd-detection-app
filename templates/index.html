@@ -3,8 +3,7 @@
 <head>
 <title>PilgrimFlow</title>
 
-<link rel="stylesheet"
-href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
 body{
@@ -88,23 +87,18 @@ font-size:14px;
 <script>
 var map = L.map('map').setView([20.5937,78.9629],5)
 
-L.tileLayer(
-'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-).addTo(map)
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
 
 var selectedTemple="Shirdi"
 
 function searchTemple(){
-
 let temple=document.getElementById("search").value
 selectedTemple=temple
 
 fetch("https://nominatim.openstreetmap.org/search?format=json&q="+temple+" temple india")
 .then(res=>res.json())
 .then(data=>{
-
 if(data.length>0){
-
 let lat=data[0].lat
 let lon=data[0].lon
 
@@ -115,58 +109,38 @@ L.marker([lat,lon]).addTo(map)
 .openPopup()
 
 fetch('/save_search/'+temple)
-
 }
-
 })
-
 }
 
 function getCrowd(){
-
 fetch('/crowd/'+selectedTemple)
 .then(res=>res.json())
 .then(data=>{
-
-document.getElementById("result").innerHTML=
-"<b>"+data.temple+"</b><br>"+
-"Crowd: "+data.crowd_level+"<br>"+
-data.suggestion
-
+document.getElementById("result").innerHTML="<b>"+data.temple+"</b><br>"+
+"Crowd: "+data.crowd_level+"<br>"+data.suggestion
 })
-
 }
 
 function bestTime(){
-
 fetch('/predict/'+selectedTemple)
 .then(res=>res.json())
 .then(data=>{
-
-document.getElementById("result").innerHTML=
-"<b>"+data.temple+"</b><br>"+
+document.getElementById("result").innerHTML="<b>"+data.temple+"</b><br>"+
 "Best Time: "+data.best_time
-
 })
-
 }
 
 function loadHistory(){
-
 fetch('/history')
 .then(res=>res.json())
 .then(data=>{
-
 let html="<b>Recent Searches:</b><br>"
-
 data.forEach(x=>{
 html += x+"<br>"
 })
-
 document.getElementById("history").innerHTML=html
-
 })
-
 }
 </script>
 
