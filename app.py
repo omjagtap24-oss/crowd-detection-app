@@ -5,11 +5,10 @@ import requests
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-# Temporary storage
 users = {}
 search_history = []
 
-# ---------------- SPLASH ----------------
+# ---------------- HOME (LOGIN PAGE) ----------------
 @app.route("/")
 def splash():
     return render_template("login.html")
@@ -41,13 +40,6 @@ def login():
         return "Invalid Username or Password"
 
 
-# ---------------- LOGOUT ----------------
-@app.route("/logout")
-def logout():
-    session.pop("user", None)
-    return redirect("/")
-
-
 # ---------------- HOME ----------------
 @app.route("/home")
 def home():
@@ -61,22 +53,28 @@ def home():
 def search_temple():
     query = request.args.get("query")
 
-    url = f"https://nominatim.openstreetmap.org/search?q={query} temple india&format=json"
+    url = "https://nominatim.openstreetmap.org/search"
+
+    params = {
+        "q": query + " temple India",
+        "format": "json",
+        "limit": 5
+    }
 
     headers = {
         "User-Agent": "PilgrimFlowApp"
     }
 
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, params=params, headers=headers)
     data = response.json()
 
     results = []
 
-    for place in data[:5]:
+    for place in data:
         results.append({
-            "name": place["display_name"],
-            "lat": place["lat"],
-            "lon": place["lon"]
+            "name": place.get("display_name"),
+            "lat": place.get("lat"),
+            "lon": place.get("lon")
         })
 
     return jsonify(results)
@@ -87,8 +85,7 @@ def search_temple():
 def save_search(name):
     if name not in search_history:
         search_history.insert(0, name)
-
-    return "saved"
+    return "ok"
 
 
 # ---------------- HISTORY ----------------
@@ -136,3 +133,4 @@ def predict(temple):
 
 if __name__ == "__main__":
     app.run(debug=True)
+
