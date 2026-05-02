@@ -3,6 +3,7 @@
 <head>
     <title>PilgrimFlow</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
     <style>
         body {
             margin: 0;
@@ -62,17 +63,11 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
-            transition: background-color 0.3s ease;
         }
 
         .search-btn { background: #3b82f6; color: white; }
-        .search-btn:hover { background: #2563eb; }
-
         .crowd-btn { background: #ef4444; color: white; }
-        .crowd-btn:hover { background: #dc2626; }
-
         .predict-btn { background: #22c55e; color: white; }
-        .predict-btn:hover { background: #16a34a; }
 
         #suggestions {
             background: white;
@@ -94,11 +89,6 @@
             border-radius:10px;
         }
 
-        .history-box h4{
-            margin:0 0 10px 0;
-            color:#facc15;
-        }
-
         .history-item{
             padding:6px;
             margin-bottom:5px;
@@ -106,7 +96,6 @@
             border-radius:8px;
             font-size:13px;
             cursor:pointer;
-            color: white;
         }
 
         .history-item:hover{
@@ -137,7 +126,6 @@
 
     <div id="result"></div>
 
-    <!-- RECENT SEARCHES -->
     <div class="history-box">
         <h4>🕘 Recent Searches</h4>
         <div id="historyList">No searches yet</div>
@@ -150,6 +138,7 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
+
     var map = L.map('map').setView([20.5937, 78.9629], 5);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -172,13 +161,124 @@
             data.suggestion;
     }
 
-    // SAVE SEARCH TO DATABASE
+    // ---------------- SEARCH ----------------
+    function searchTemple() {
+        var query = document.getElementById("search").value;
+
+        fetch("/search_temple?query=" + query)
+        .then(res => res.json())
+        .then(data => {
+
+            if (data.length > 0) {
+
+                var lat = parseFloat(data[0].lat);
+                var lon = parseFloat(data[0].lon);
+
+                map.setView([lat, lon], 13);
+
+                L.marker([lat, lon]).addTo(map)
+                    .bindPopup(data[0].name)
+                    .openPopup();
+
+                selectedTemple = data[0].name;
+
+                saveSearch(data[0].name);
+            }
+            else {
+                alert("Temple not found");
+            }
+        });
+    }
+
+    // ---------------- SUGGESTIONS ----------------
+    function showSuggestions() {
+        var query = document.getElementById("search").value;
+
+        if (query.length < 3) {
+            document.getElementById("suggestions").innerHTML = "";
+            return;
+        }
+
+        fetch("/search_temple?query=" + query)
+        .then(res => res.json())
+        .then(data => {
+
+            let suggestions = "";
+
+            data.forEach(place => {
+                suggestions += `
+                    <div style="padding:5px;cursor:pointer;"
+                    onclick="selectSuggestion('${place.name}', '${place.lat}', '${place.lon}')">
+                    ${place.name}
+                    </div>
+                `;
+            });
+
+            document.getElementById("suggestions").innerHTML = suggestions;
+        });
+    }
+
+    function selectSuggestion(name, lat, lon) {
+        document.getElementById("search").value = name;
+        document.getElementById("suggestions").innerHTML = "";
+
+        lat = parseFloat(lat);
+        lon = parseFloat(lon);
+
+        map.setView([lat, lon], 13);
+
+        L.marker([lat, lon]).addTo(map)
+            .bindPopup(name)
+            .openPopup();
+
+        selectedTemple = name;
+
+        saveSearch(name);
+    }
+
+    // ---------------- LOCATION ----------------
+    function useLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+
+                var lat = position.coords.latitude;
+                var lon = position.coords.longitude;
+
+                map.setView([lat, lon], 13);
+
+                L.marker([lat, lon]).addTo(map)
+                    .bindPopup("You are here")
+                    .openPopup();
+
+                selectedTemple = "Nearby Temple";
+            });
+        }
+    }
+
+    // ---------------- CROWD ----------------
+    function getCrowd() {
+        fetch('/crowd/' + selectedTemple)
+        .then(res => res.json())
+        .then(data => showResult(data));
+    }
+
+    // ---------------- PREDICTION ----------------
+    function getPrediction() {
+        fetch('/predict/' + selectedTemple)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("result").innerHTML =
+                "<b>" + data.temple + "</b><br>" +
+                "Best Time: " + data.best_time;
+        });
+    }
+
+    // ---------------- HISTORY ----------------
     function saveSearch(name){
         fetch("/save_search/" + encodeURIComponent(name));
         loadHistory();
     }
 
-    // LOAD HISTORY
     function loadHistory(){
         fetch("/history")
         .then(res => res.json())
@@ -211,112 +311,8 @@
         searchTemple();
     }
 
-    // SEARCH
-    function searchTemple() {
-        var query = document.getElementById("search").value;
-
-        fetch("/search_temple?query=" + query)
-        .then(res => res.json())
-        .then(data => {
-
-            if (data.length > 0) {
-                var lat = data[0].lat;
-                var lon = data[0].lon;
-
-                map.setView([lat, lon], 13);
-
-                L.marker([lat, lon]).addTo(map)
-                    .bindPopup(query)
-                    .openPopup();
-
-                selectedTemple = query;
-
-                saveSearch(query);
-            }
-        });
-    }
-
-    // AUTO SUGGESTIONS
-    function showSuggestions() {
-        var query = document.getElementById("search").value;
-
-        if (query.length < 3) {
-            document.getElementById("suggestions").innerHTML = "";
-            return;
-        }
-
-        fetch("/search_temple?query=" + query)
-        .then(res => res.json())
-        .then(data => {
-
-            let suggestions = "";
-
-            data.forEach(place => {
-                suggestions += `
-                    <div style="padding:5px;cursor:pointer;"
-                    onclick="selectSuggestion('${place.name}', ${place.lat}, ${place.lon})">
-                    ${place.name}
-                    </div>
-                `;
-            });
-
-            document.getElementById("suggestions").innerHTML = suggestions;
-        });
-    }
-
-    function selectSuggestion(name, lat, lon) {
-        document.getElementById("search").value = name;
-        document.getElementById("suggestions").innerHTML = "";
-
-        map.setView([lat, lon], 13);
-
-        L.marker([lat, lon]).addTo(map)
-            .bindPopup(name)
-            .openPopup();
-
-        selectedTemple = name;
-
-        saveSearch(name);
-    }
-
-    // LOCATION
-    function useLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function(position) {
-
-                var lat = position.coords.latitude;
-                var lon = position.coords.longitude;
-
-                map.setView([lat, lon], 13);
-
-                L.marker([lat, lon]).addTo(map)
-                    .bindPopup("You are here")
-                    .openPopup();
-
-                selectedTemple = "Nearby Temple";
-            });
-        }
-    }
-
-    // CROWD
-    function getCrowd() {
-        fetch('/crowd/' + selectedTemple)
-        .then(res => res.json())
-        .then(data => showResult(data));
-    }
-
-    // BEST TIME
-    function getPrediction() {
-        fetch('/predict/' + selectedTemple)
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById("result").innerHTML =
-                "<b>" + data.temple + "</b><br>" +
-                "Best Time: " + data.best_time;
-        });
-    }
-
     loadHistory();
+
 </script>
 
 </body>
