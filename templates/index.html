@@ -9,7 +9,6 @@
             margin: 0;
             font-family: 'Segoe UI', sans-serif;
             background: #0f172a;
-            color: white;
         }
 
         #map {
@@ -26,7 +25,7 @@
             font-size: 20px;
             font-weight: bold;
             background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(10px);
+            color: white;
             z-index: 1000;
         }
 
@@ -37,12 +36,10 @@
             width: 320px;
             padding: 15px;
             border-radius: 15px;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.15);
             backdrop-filter: blur(15px);
             box-shadow: 0 0 20px rgba(0,0,0,0.3);
             z-index: 1000;
-            max-height: 85vh;
-            overflow-y: auto;
         }
 
         input {
@@ -80,56 +77,65 @@
         #result {
             margin-top: 10px;
             font-size: 14px;
+            color: black;
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
         }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .low { background: #22c55e; }
+        .medium { background: #f59e0b; }
+        .high { background: #ef4444; }
 
         .history-box{
             margin-top:15px;
-            background: rgba(255,255,255,0.08);
+            background: white;
             padding:10px;
             border-radius:10px;
+            color:black;
         }
 
         .history-item{
             padding:6px;
             margin-bottom:5px;
-            background:rgba(255,255,255,0.08);
+            background:rgba(0,0,0,0.05);
             border-radius:8px;
-            font-size:13px;
             cursor:pointer;
         }
 
         .history-item:hover{
-            background:rgba(255,255,255,0.18);
+            background:rgba(0,0,0,0.1);
         }
     </style>
 </head>
 
 <body>
 
-<div class="top-bar">
-    🛕 PilgrimFlow
-</div>
+<div class="top-bar">🛕 PilgrimFlow</div>
 
 <div class="panel">
 
-    🔍 <input type="text" id="search" placeholder="Search temple..." oninput="showSuggestions()">
-    <div id="suggestions"></div>
+<input type="text" id="search" placeholder="Search temple..." oninput="showSuggestions()">
+<div id="suggestions"></div>
 
-    <button class="search-btn" onclick="searchTemple()">Search</button>
+<button class="search-btn" onclick="searchTemple()">Search</button>
+<button onclick="useLocation()" style="background:#06b6d4;color:white;">📍 Use My Location</button>
+<button class="crowd-btn" onclick="getCrowd()">Check Crowd</button>
+<button class="predict-btn" onclick="getPrediction()">Best Time</button>
 
-    <button onclick="useLocation()" style="background:#06b6d4;color:white;">
-        📍 Use My Location
-    </button>
+<div id="result"></div>
 
-    <button class="crowd-btn" onclick="getCrowd()">Check Crowd</button>
-    <button class="predict-btn" onclick="getPrediction()">Best Time</button>
-
-    <div id="result"></div>
-
-    <div class="history-box">
-        <h4>🕘 Recent Searches</h4>
-        <div id="historyList">No searches yet</div>
-    </div>
+<div class="history-box">
+<h4>Recent Searches</h4>
+<div id="historyList"></div>
+</div>
 
 </div>
 
@@ -139,179 +145,138 @@
 
 <script>
 
-    var map = L.map('map').setView([20.5937, 78.9629], 5);
+var map = L.map('map').setView([20.5937, 78.9629], 5);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-    }).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    var selectedTemple = "Shirdi";
+var selectedTemple = "";
 
-    function getColor(level) {
-        if (level === "High") return "#ef4444";
-        if (level === "Medium") return "#f59e0b";
-        return "#22c55e";
+function getBadge(level) {
+    if(level === "High") return "<span class='badge high'>High</span>";
+    if(level === "Medium") return "<span class='badge medium'>Medium</span>";
+    return "<span class='badge low'>Low</span>";
+}
+
+function showResult(data) {
+    document.getElementById("result").innerHTML =
+        "<b>" + data.temple + "</b><br><br>" +
+        "Crowd Level: " + getBadge(data.crowd_level) + "<br><br>" +
+        data.suggestion;
+}
+
+function searchTemple() {
+    var query = document.getElementById("search").value;
+
+    if (!query) {
+        alert("Enter temple name");
+        return;
     }
 
-    function showResult(data) {
-        document.getElementById("result").innerHTML =
-            "<b>" + data.temple + "</b><br>" +
-            "Crowd: <span style='color:" + getColor(data.crowd_level) + "'>" +
-            data.crowd_level + "</span><br>" +
-            data.suggestion;
-    }
+    fetch("/search_temple?query=" + encodeURIComponent(query))
+    .then(res => res.json())
+    .then(data => {
 
-    // ---------------- SEARCH ----------------
-    function searchTemple() {
-        var query = document.getElementById("search").value;
-
-        fetch("/search_temple?query=" + query)
-        .then(res => res.json())
-        .then(data => {
-
-            if (data.length > 0) {
-
-                var lat = parseFloat(data[0].lat);
-                var lon = parseFloat(data[0].lon);
-
-                map.setView([lat, lon], 13);
-
-                L.marker([lat, lon]).addTo(map)
-                    .bindPopup(data[0].name)
-                    .openPopup();
-
-                selectedTemple = data[0].name;
-
-                saveSearch(data[0].name);
-            }
-            else {
-                alert("Temple not found");
-            }
-        });
-    }
-
-    // ---------------- SUGGESTIONS ----------------
-    function showSuggestions() {
-        var query = document.getElementById("search").value;
-
-        if (query.length < 3) {
-            document.getElementById("suggestions").innerHTML = "";
+        if (data.length === 0) {
+            alert("Temple not found");
             return;
         }
 
-        fetch("/search_temple?query=" + query)
-        .then(res => res.json())
-        .then(data => {
-
-            let suggestions = "";
-
-            data.forEach(place => {
-                suggestions += `
-                    <div style="padding:5px;cursor:pointer;"
-                    onclick="selectSuggestion('${place.name}', '${place.lat}', '${place.lon}')">
-                    ${place.name}
-                    </div>
-                `;
-            });
-
-            document.getElementById("suggestions").innerHTML = suggestions;
-        });
-    }
-
-    function selectSuggestion(name, lat, lon) {
-        document.getElementById("search").value = name;
-        document.getElementById("suggestions").innerHTML = "";
-
-        lat = parseFloat(lat);
-        lon = parseFloat(lon);
+        var lat = parseFloat(data[0].lat);
+        var lon = parseFloat(data[0].lon);
 
         map.setView([lat, lon], 13);
 
         L.marker([lat, lon]).addTo(map)
-            .bindPopup(name)
+            .bindPopup(data[0].name)
             .openPopup();
 
-        selectedTemple = name;
+        selectedTemple = data[0].name;
 
-        saveSearch(name);
-    }
+        saveSearch(data[0].name);
+    });
+}
 
-    // ---------------- LOCATION ----------------
-    function useLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function(position) {
+function showSuggestions() {
+    var query = document.getElementById("search").value;
 
-                var lat = position.coords.latitude;
-                var lon = position.coords.longitude;
+    if (query.length < 3) return;
 
-                map.setView([lat, lon], 13);
+    fetch("/search_temple?query=" + query)
+    .then(res => res.json())
+    .then(data => {
 
-                L.marker([lat, lon]).addTo(map)
-                    .bindPopup("You are here")
-                    .openPopup();
+        let html = "";
 
-                selectedTemple = "Nearby Temple";
-            });
-        }
-    }
-
-    // ---------------- CROWD ----------------
-    function getCrowd() {
-        fetch('/crowd/' + selectedTemple)
-        .then(res => res.json())
-        .then(data => showResult(data));
-    }
-
-    // ---------------- PREDICTION ----------------
-    function getPrediction() {
-        fetch('/predict/' + selectedTemple)
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById("result").innerHTML =
-                "<b>" + data.temple + "</b><br>" +
-                "Best Time: " + data.best_time;
+        data.forEach(place => {
+            html += `<div onclick="selectSuggestion('${place.name}','${place.lat}','${place.lon}')">${place.name}</div>`;
         });
-    }
 
-    // ---------------- HISTORY ----------------
-    function saveSearch(name){
-        fetch("/save_search/" + encodeURIComponent(name));
-        loadHistory();
-    }
+        document.getElementById("suggestions").innerHTML = html;
+    });
+}
 
-    function loadHistory(){
-        fetch("/history")
-        .then(res => res.json())
-        .then(data => {
+function selectSuggestion(name, lat, lon) {
+    lat = parseFloat(lat);
+    lon = parseFloat(lon);
 
-            let box = document.getElementById("historyList");
+    map.setView([lat, lon], 13);
 
-            if(data.length === 0){
-                box.innerHTML = "No searches yet";
-                return;
-            }
+    L.marker([lat, lon]).addTo(map)
+        .bindPopup(name)
+        .openPopup();
 
-            let html = "";
+    selectedTemple = name;
+}
 
-            data.forEach(item => {
-                html += `
-                    <div class="history-item"
-                    onclick="searchFromHistory('${item}')">
-                    ${item}
-                    </div>
-                `;
-            });
+function useLocation() {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        var lat = pos.coords.latitude;
+        var lon = pos.coords.longitude;
 
-            box.innerHTML = html;
-        });
-    }
+        map.setView([lat, lon], 13);
+        L.marker([lat, lon]).addTo(map).bindPopup("You are here").openPopup();
+    });
+}
 
-    function searchFromHistory(name){
-        document.getElementById("search").value = name;
-        searchTemple();
-    }
+function getCrowd() {
+    fetch('/crowd/' + selectedTemple)
+    .then(res => res.json())
+    .then(data => showResult(data));
+}
 
+function getPrediction() {
+    fetch('/predict/' + selectedTemple)
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("result").innerHTML =
+            "<b>" + data.temple + "</b><br><br>" +
+            "Best Time: " + data.best_time;
+    });
+}
+
+function saveSearch(name){
+    fetch("/save_search/" + encodeURIComponent(name));
     loadHistory();
+}
+
+function loadHistory(){
+    fetch("/history")
+    .then(res => res.json())
+    .then(data => {
+        let html = "";
+        data.forEach(item => {
+            html += `<div class="history-item" onclick="searchFromHistory('${item}')">${item}</div>`;
+        });
+        document.getElementById("historyList").innerHTML = html;
+    });
+}
+
+function searchFromHistory(name){
+    document.getElementById("search").value = name;
+    searchTemple();
+}
+
+loadHistory();
 
 </script>
 
