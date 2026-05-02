@@ -8,10 +8,13 @@ app.secret_key = "secret123"
 users = {}
 search_history = []
 
+# ---------------- HOME (LOGIN PAGE) ----------------
 @app.route("/")
 def splash():
     return render_template("login.html")
 
+
+# ---------------- SIGNUP ----------------
 @app.route("/signup", methods=["POST"])
 def signup():
     username = request.form.get("username")
@@ -23,6 +26,8 @@ def signup():
     users[username] = password
     return redirect(url_for("splash"))
 
+
+# ---------------- LOGIN ----------------
 @app.route("/login", methods=["POST"])
 def login():
     username = request.form.get("username")
@@ -34,13 +39,16 @@ def login():
     else:
         return "Invalid Username or Password"
 
+
+# ---------------- HOME ----------------
 @app.route("/home")
 def home():
     if "user" not in session:
         return redirect("/")
     return render_template("index.html")
 
-# -------- TEMPLE SEARCH --------
+
+# ---------------- SEARCH TEMPLE ----------------
 @app.route("/search_temple")
 def search_temple():
     query = request.args.get("query")
@@ -71,18 +79,22 @@ def search_temple():
 
     return jsonify(results)
 
-# -------- HISTORY --------
+
+# ---------------- SAVE SEARCH ----------------
 @app.route("/save_search/<name>")
 def save_search(name):
     if name not in search_history:
         search_history.insert(0, name)
     return "ok"
 
+
+# ---------------- HISTORY ----------------
 @app.route("/history")
 def history():
     return jsonify(search_history[:5])
 
-# -------- CROWD --------
+
+# ---------------- CROWD ----------------
 @app.route("/crowd/<temple>")
 def crowd(temple):
 
@@ -101,7 +113,8 @@ def crowd(temple):
         "suggestion": suggestion
     })
 
-# -------- PREDICTION --------
+
+# ---------------- BEST TIME ----------------
 @app.route("/predict/<temple>")
 def predict(temple):
 
@@ -116,6 +129,7 @@ def predict(temple):
         "temple": temple,
         "best_time": best
     })
+
 
 if __name__ == "__main__":
     app.run(debug=True)
