@@ -1,119 +1,77 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PilgrimFlow</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<title>PilgrimFlow</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-            background: #0f172a;
-        }
+<style>
+body { margin:0; font-family:'Segoe UI'; background:#0f172a; }
+#map { height:100vh; }
 
-        #map {
-            height: 100vh;
-            width: 100%;
-        }
+.top-bar {
+position:absolute; top:0; width:100%;
+padding:12px; text-align:center;
+font-size:20px; font-weight:bold;
+background:rgba(0,0,0,0.6); color:white;
+z-index:1000;
+}
 
-        .top-bar {
-            position: absolute;
-            top: 0;
-            width: 100%;
-            padding: 12px;
-            text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-            background: rgba(0,0,0,0.6);
-            color: white;
-            z-index: 1000;
-        }
+.panel {
+position:absolute; top:70px; left:20px;
+width:320px; padding:15px;
+border-radius:15px;
+background:rgba(255,255,255,0.15);
+backdrop-filter:blur(15px);
+z-index:1000;
+}
 
-        .panel {
-            position: absolute;
-            top: 70px;
-            left: 20px;
-            width: 320px;
-            padding: 15px;
-            border-radius: 15px;
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(15px);
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-            z-index: 1000;
-        }
+input {
+width:100%; padding:10px;
+border-radius:8px; border:none;
+margin-bottom:5px;
+background:#1c1c1c; color:white;
+}
 
-        input {
-            width: 100%;
-            padding: 10px;
-            border-radius: 8px;
-            border: none;
-            margin-bottom: 5px;
-            background: #1c1c1c;
-            color: white;
-        }
+button {
+width:100%; padding:10px;
+margin-top:5px;
+border:none; border-radius:8px;
+cursor:pointer; font-weight:bold;
+}
 
-        button {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
+.search-btn{background:#3b82f6;color:white;}
+.crowd-btn{background:#ef4444;color:white;}
+.predict-btn{background:#22c55e;color:white;}
 
-        .search-btn { background: #3b82f6; color: white; }
-        .crowd-btn { background: #ef4444; color: white; }
-        .predict-btn { background: #22c55e; color: white; }
+#result {
+margin-top:10px;
+background:white;
+color:black;
+padding:10px;
+border-radius:10px;
+}
 
-        #suggestions {
-            background: white;
-            color: black;
-            border-radius: 8px;
-            max-height: 120px;
-            overflow-y: auto;
-        }
+.badge{padding:4px 8px;border-radius:6px;color:white;font-weight:bold;}
+.low{background:#22c55e;}
+.medium{background:#f59e0b;}
+.high{background:#ef4444;}
 
-        #result {
-            margin-top: 10px;
-            font-size: 14px;
-            color: black;
-            background: white;
-            padding: 10px;
-            border-radius: 10px;
-        }
+.history-box{
+margin-top:15px;
+background:white;
+padding:10px;
+border-radius:10px;
+color:black;
+}
 
-        .badge {
-            padding: 4px 8px;
-            border-radius: 6px;
-            color: white;
-            font-weight: bold;
-        }
-
-        .low { background: #22c55e; }
-        .medium { background: #f59e0b; }
-        .high { background: #ef4444; }
-
-        .history-box{
-            margin-top:15px;
-            background: white;
-            padding:10px;
-            border-radius:10px;
-            color:black;
-        }
-
-        .history-item{
-            padding:6px;
-            margin-bottom:5px;
-            background:rgba(0,0,0,0.05);
-            border-radius:8px;
-            cursor:pointer;
-        }
-
-        .history-item:hover{
-            background:rgba(0,0,0,0.1);
-        }
-    </style>
+.history-item{
+padding:6px;
+margin-bottom:5px;
+background:rgba(0,0,0,0.05);
+border-radius:8px;
+cursor:pointer;
+}
+</style>
 </head>
 
 <body>
@@ -122,18 +80,26 @@
 
 <div class="panel">
 
-<input type="text" id="search" placeholder="Search temple..." oninput="showSuggestions()">
+<!-- Language Selector -->
+<select onchange="changeLanguage(this.value)" style="width:100%;padding:8px;border-radius:8px;margin-bottom:10px;">
+<option value="en">English</option>
+<option value="mr">Marathi</option>
+<option value="hi">Hindi</option>
+<option value="de">German</option>
+</select>
+
+<input id="searchBox" placeholder="Search temple..." oninput="showSuggestions()">
 <div id="suggestions"></div>
 
-<button class="search-btn" onclick="searchTemple()">Search</button>
-<button onclick="useLocation()" style="background:#06b6d4;color:white;">📍 Use My Location</button>
-<button class="crowd-btn" onclick="getCrowd()">Check Crowd</button>
-<button class="predict-btn" onclick="getPrediction()">Best Time</button>
+<button id="searchBtn" class="search-btn" onclick="searchTemple()">Search</button>
+<button id="locationBtn" onclick="useLocation()" style="background:#06b6d4;color:white;">📍 Use My Location</button>
+<button id="crowdBtn" class="crowd-btn" onclick="getCrowd()">Check Crowd</button>
+<button id="predictBtn" class="predict-btn" onclick="getPrediction()">Best Time</button>
 
 <div id="result"></div>
 
 <div class="history-box">
-<h4>Recent Searches</h4>
+<h4 id="historyTitle">Recent Searches</h4>
 <div id="historyList"></div>
 </div>
 
@@ -145,135 +111,114 @@
 
 <script>
 
-var map = L.map('map').setView([20.5937, 78.9629], 5);
-
+var map = L.map('map').setView([20.5937,78.9629],5);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-var selectedTemple = "";
+var selectedTemple="";
 
-function getBadge(level) {
-    if(level === "High") return "<span class='badge high'>High</span>";
-    if(level === "Medium") return "<span class='badge medium'>Medium</span>";
-    return "<span class='badge low'>Low</span>";
+var translations={
+en:{search:"Search temple...",searchBtn:"Search",location:"Use My Location",crowd:"Check Crowd",predict:"Best Time",history:"Recent Searches"},
+mr:{search:"मंदिर शोधा...",searchBtn:"शोधा",location:"माझे स्थान वापरा",crowd:"गर्दी तपासा",predict:"योग्य वेळ",history:"अलीकडील शोध"},
+hi:{search:"मंदिर खोजें...",searchBtn:"खोजें",location:"मेरा स्थान उपयोग करें",crowd:"भीड़ जांचें",predict:"सर्वश्रेष्ठ समय",history:"हाल की खोजें"},
+de:{search:"Tempel suchen...",searchBtn:"Suchen",location:"Standort verwenden",crowd:"Menschenmenge prüfen",predict:"Beste Zeit",history:"Letzte Suchen"}
+};
+
+function changeLanguage(lang){
+document.getElementById("searchBox").placeholder=translations[lang].search;
+document.getElementById("searchBtn").innerText=translations[lang].searchBtn;
+document.getElementById("locationBtn").innerText="📍 "+translations[lang].location;
+document.getElementById("crowdBtn").innerText=translations[lang].crowd;
+document.getElementById("predictBtn").innerText=translations[lang].predict;
+document.getElementById("historyTitle").innerText=translations[lang].history;
 }
 
-function showResult(data) {
-    document.getElementById("result").innerHTML =
-        "<b>" + data.temple + "</b><br><br>" +
-        "Crowd Level: " + getBadge(data.crowd_level) + "<br><br>" +
-        data.suggestion;
+function searchTemple(){
+var query=document.getElementById("searchBox").value;
+fetch("/search_temple?query="+encodeURIComponent(query))
+.then(res=>res.json())
+.then(data=>{
+if(data.length===0){alert("Temple not found");return;}
+var lat=parseFloat(data[0].lat);
+var lon=parseFloat(data[0].lon);
+map.setView([lat,lon],13);
+L.marker([lat,lon]).addTo(map).bindPopup(data[0].name).openPopup();
+selectedTemple=data[0].name;
+saveSearch(data[0].name);
+});
 }
 
-function searchTemple() {
-    var query = document.getElementById("search").value;
+function showSuggestions(){
+var query=document.getElementById("searchBox").value;
+if(query.length<3)return;
 
-    if (!query) {
-        alert("Enter temple name");
-        return;
-    }
-
-    fetch("/search_temple?query=" + encodeURIComponent(query))
-    .then(res => res.json())
-    .then(data => {
-
-        if (data.length === 0) {
-            alert("Temple not found");
-            return;
-        }
-
-        var lat = parseFloat(data[0].lat);
-        var lon = parseFloat(data[0].lon);
-
-        map.setView([lat, lon], 13);
-
-        L.marker([lat, lon]).addTo(map)
-            .bindPopup(data[0].name)
-            .openPopup();
-
-        selectedTemple = data[0].name;
-
-        saveSearch(data[0].name);
-    });
+fetch("/search_temple?query="+query)
+.then(res=>res.json())
+.then(data=>{
+let html="";
+data.forEach(p=>{
+html+=`<div onclick="selectSuggestion('${p.name}','${p.lat}','${p.lon}')">${p.name}</div>`;
+});
+document.getElementById("suggestions").innerHTML=html;
+});
 }
 
-function showSuggestions() {
-    var query = document.getElementById("search").value;
-
-    if (query.length < 3) return;
-
-    fetch("/search_temple?query=" + query)
-    .then(res => res.json())
-    .then(data => {
-
-        let html = "";
-
-        data.forEach(place => {
-            html += `<div onclick="selectSuggestion('${place.name}','${place.lat}','${place.lon}')">${place.name}</div>`;
-        });
-
-        document.getElementById("suggestions").innerHTML = html;
-    });
+function selectSuggestion(name,lat,lon){
+lat=parseFloat(lat);
+lon=parseFloat(lon);
+map.setView([lat,lon],13);
+L.marker([lat,lon]).addTo(map).bindPopup(name).openPopup();
+selectedTemple=name;
 }
 
-function selectSuggestion(name, lat, lon) {
-    lat = parseFloat(lat);
-    lon = parseFloat(lon);
-
-    map.setView([lat, lon], 13);
-
-    L.marker([lat, lon]).addTo(map)
-        .bindPopup(name)
-        .openPopup();
-
-    selectedTemple = name;
+function useLocation(){
+navigator.geolocation.getCurrentPosition(pos=>{
+var lat=pos.coords.latitude;
+var lon=pos.coords.longitude;
+map.setView([lat,lon],13);
+L.marker([lat,lon]).addTo(map).bindPopup("You are here").openPopup();
+});
 }
 
-function useLocation() {
-    navigator.geolocation.getCurrentPosition(function(pos) {
-        var lat = pos.coords.latitude;
-        var lon = pos.coords.longitude;
-
-        map.setView([lat, lon], 13);
-        L.marker([lat, lon]).addTo(map).bindPopup("You are here").openPopup();
-    });
+function getCrowd(){
+fetch('/crowd/'+selectedTemple)
+.then(res=>res.json())
+.then(d=>{
+document.getElementById("result").innerHTML=
+"<b>"+d.temple+"</b><br><br>"+
+"Level: "+d.crowd_level+"<br><br>"+d.suggestion;
+});
 }
 
-function getCrowd() {
-    fetch('/crowd/' + selectedTemple)
-    .then(res => res.json())
-    .then(data => showResult(data));
-}
-
-function getPrediction() {
-    fetch('/predict/' + selectedTemple)
-    .then(res => res.json())
-    .then(data => {
-        document.getElementById("result").innerHTML =
-            "<b>" + data.temple + "</b><br><br>" +
-            "Best Time: " + data.best_time;
-    });
+function getPrediction(){
+fetch('/predict/'+selectedTemple)
+.then(res=>res.json())
+.then(d=>{
+document.getElementById("result").innerHTML=
+"<b>"+d.temple+"</b><br><br>"+
+"Best Time: "+d.best_time;
+});
 }
 
 function saveSearch(name){
-    fetch("/save_search/" + encodeURIComponent(name));
-    loadHistory();
+fetch("/save_search/"+encodeURIComponent(name));
+loadHistory();
 }
 
 function loadHistory(){
-    fetch("/history")
-    .then(res => res.json())
-    .then(data => {
-        let html = "";
-        data.forEach(item => {
-            html += `<div class="history-item" onclick="searchFromHistory('${item}')">${item}</div>`;
-        });
-        document.getElementById("historyList").innerHTML = html;
-    });
+fetch("/history")
+.then(res=>res.json())
+.then(data=>{
+let html="";
+data.forEach(item=>{
+html+=`<div class="history-item" onclick="searchFromHistory('${item}')">${item}</div>`;
+});
+document.getElementById("historyList").innerHTML=html;
+});
 }
 
 function searchFromHistory(name){
-    document.getElementById("search").value = name;
-    searchTemple();
+document.getElementById("searchBox").value=name;
+searchTemple();
 }
 
 loadHistory();
