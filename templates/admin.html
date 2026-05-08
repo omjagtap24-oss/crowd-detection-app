@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Panel</title>
+<style>
+body { background:#0f172a; color:white; font-family:Arial; padding:20px; }
+.box { background:white; color:black; padding:20px; border-radius:10px; width:350px; }
+input { width:100%; padding:8px; margin:5px 0; }
+button { width:100%; padding:10px; background:#2563eb; color:white; border:none; }
+table { margin-top:20px; width:100%; background:white; color:black; }
+td, th { padding:10px; border:1px solid #ccc; }
+</style>
+</head>
+
+<body>
+
+<h2>Admin Panel</h2>
+
+<div class="box">
+<form action="/add_temple" method="POST">
+<input name="name" placeholder="Temple Name" required>
+<input name="capacity" type="number" placeholder="Capacity" required>
+<input name="low" type="number" placeholder="Low Threshold" required>
+<input name="medium" type="number" placeholder="Medium Threshold" required>
+<button>Add / Update</button>
+</form>
+</div>
+
+<h3>Temple Data</h3>
+
+<table>
+<tr><th>Name</th><th>Capacity</th><th>Low</th><th>Medium</th></tr>
+{% for name, val in data.items() %}
+<tr>
+<td>{{name}}</td>
+<td>{{val.capacity}}</td>
+<td>{{val.low}}</td>
+<td>{{val.medium}}</td>
+</tr>
+{% endfor %}
+</table>
+
+</body>
+</html>
