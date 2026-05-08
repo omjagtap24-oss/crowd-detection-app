@@ -1,114 +1,9 @@
 <!DOCTYPE html>
-<html>
-<head>
-<title>PilgrimFlow</title>
-
-<style>
-body{
-margin:0;
-font-family:Arial;
-background:#0f172a;
-overflow:hidden;
-}
-
-/* Splash Screen */
-#splash{
-position:fixed;
-width:100%;
-height:100%;
-background:linear-gradient(135deg,#2563eb,#06b6d4);
-display:flex;
-justify-content:center;
-align-items:center;
-flex-direction:column;
-color:white;
-z-index:9999;
-}
-
-#splash h1{
-font-size:48px;
-margin:0;
-}
-
-#splash p{
-font-size:18px;
-opacity:0.9;
-}
-
-/* Login */
-#main{
-display:none;
-height:100vh;
-display:flex;
-justify-content:center;
-align-items:center;
-}
-
-.box{
-width:330px;
-background:white;
-padding:30px;
-border-radius:15px;
-box-shadow:0 0 20px rgba(0,0,0,0.2);
-text-align:center;
-}
-
-.box h2{
-margin-bottom:20px;
-color:#2563eb;
-}
-
-input{
-width:90%;
-padding:10px;
-margin:8px;
-border:1px solid #ccc;
-border-radius:8px;
-}
-
-button{
-width:95%;
-padding:10px;
-margin-top:10px;
-background:#2563eb;
-color:white;
-border:none;
-border-radius:8px;
-cursor:pointer;
-font-weight:bold;
-}
-
-a{
-display:block;
-margin-top:10px;
-color:#2563eb;
-cursor:pointer;
-text-decoration:none;
-font-size:14px;
-}
-
-.hidden{
-display:none;
-}
-</style>
-</head>
-
-<body>
-
-<!-- Splash -->
-<div id="splash">
-<h1>🛕 PilgrimFlow</h1>
-<p>Smart Temple Crowd Guidance</p>
-</div>
-
-<!-- Login Page -->
-<div id="main">
 
 <div class="box">
 
-<!-- Login -->
 <div id="loginBox">
-<h2>Login</h2>
+<h2>User Login</h2>
 
 <form action="/login" method="POST">
 <input type="text" name="username" placeholder="Username" required>
@@ -117,10 +12,8 @@ display:none;
 </form>
 
 <a onclick="showSignup()">Create Account</a>
-<a onclick="showForgot()">Forgot Password?</a>
 </div>
 
-<!-- Signup -->
 <div id="signupBox" class="hidden">
 <h2>Create Account</h2>
 
@@ -133,17 +26,15 @@ display:none;
 <a onclick="showLogin()">Back to Login</a>
 </div>
 
-<!-- Forgot -->
-<div id="forgotBox" class="hidden">
-<h2>Recover Password</h2>
+<hr>
 
-<form action="/forgot" method="POST">
-<input type="text" name="username" placeholder="Username" required>
-<button type="submit">Recover</button>
+<h2>Admin Login</h2>
+
+<form action="/admin_login" method="POST">
+<input type="text" name="username" placeholder="Admin Username" required>
+<input type="password" name="password" placeholder="Admin Password" required>
+<button type="submit">Admin Login</button>
 </form>
-
-<a onclick="showLogin()">Back to Login</a>
-</div>
 
 </div>
 </div>
@@ -157,19 +48,11 @@ document.getElementById("main").style.display="flex";
 function showSignup(){
 loginBox.style.display="none";
 signupBox.style.display="block";
-forgotBox.style.display="none";
-}
-
-function showForgot(){
-loginBox.style.display="none";
-signupBox.style.display="none";
-forgotBox.style.display="block";
 }
 
 function showLogin(){
 loginBox.style.display="block";
 signupBox.style.display="none";
-forgotBox.style.display="none";
 }
 </script>
 
