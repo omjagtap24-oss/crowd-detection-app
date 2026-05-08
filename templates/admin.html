@@ -1,25 +1,126 @@
 <!DOCTYPE html>
+<html>
+<head>
+<title>Admin Panel</title>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:#0f172a;
+color:white;
+padding:20px;
+}
+
+.container{
+max-width:1000px;
+margin:auto;
+}
+
+.card{
+background:white;
+color:black;
+padding:20px;
+border-radius:15px;
+margin-bottom:20px;
+box-shadow:0 0 15px rgba(0,0,0,0.2);
+}
+
+h1{
+text-align:center;
+margin-bottom:30px;
+}
+
+input{
+width:100%;
+padding:10px;
+margin-top:10px;
+border-radius:8px;
+border:1px solid #ccc;
+}
+
+button{
+padding:10px 20px;
+margin-top:15px;
+background:#2563eb;
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+font-weight:bold;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:15px;
+}
+
+th, td{
+border:1px solid #ddd;
+padding:10px;
+text-align:left;
+}
+
+th{
+background:#2563eb;
+color:white;
+}
+
+.logout-btn{
+background:#ef4444;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🛕 PilgrimFlow AI Admin Panel</h1>
+
+<div class="card">
+
 <h2>Add / Update Temple Threshold</h2>
 
 <form action="/add_temple" method="POST">
 
-<input type="text" name="name" placeholder="Temple Name" required>
+<input type="text"
+name="name"
+placeholder="Temple Name"
+required>
 
-<input type="number" name="capacity" placeholder="Temple Capacity" required>
+<input type="number"
+name="capacity"
+placeholder="Temple Capacity"
+required>
 
-<input type="number" name="low" placeholder="Low Crowd Threshold" required>
+<input type="number"
+name="low"
+placeholder="Low Crowd Threshold"
+required>
 
-<input type="number" name="medium" placeholder="Medium Crowd Threshold" required>
+<input type="number"
+name="medium"
+placeholder="Medium Crowd Threshold"
+required>
 
-<button type="submit">Save Temple</button>
+<button type="submit">
+Save Temple
+</button>
 
 </form>
+
 </div>
 
 <div class="card">
+
 <h2>Temple Thresholds</h2>
 
 <table>
+
 <tr>
 <th>Temple</th>
 <th>Capacity</th>
@@ -28,38 +129,50 @@
 </tr>
 
 {% for temple, info in data.items() %}
+
 <tr>
-<td>{{temple}}</td>
-<td>{{info.capacity}}</td>
-<td>{{info.low}}</td>
-<td>{{info.medium}}</td>
+<td>{{ temple }}</td>
+<td>{{ info.capacity }}</td>
+<td>{{ info.low }}</td>
+<td>{{ info.medium }}</td>
 </tr>
+
 {% endfor %}
 
 </table>
+
 </div>
 
 <div class="card">
+
 <h2>Registered Users</h2>
 
 <table>
+
 <tr>
 <th>Username</th>
 <th>Password</th>
 </tr>
 
-{% for username, password in users.items() %}
+{% for user in users %}
+
 <tr>
-<td>{{username}}</td>
-<td>{{password}}</td>
+<td>{{ user[0] }}</td>
+<td>{{ user[1] }}</td>
 </tr>
+
 {% endfor %}
 
 </table>
+
 </div>
 
 <a href="/logout">
-<button>Logout</button>
+
+<button class="logout-btn">
+Logout
+</button>
+
 </a>
 
 </div>
