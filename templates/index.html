@@ -303,100 +303,78 @@ function searchTemple(){
     });
 }
 
-    function showSuggestions(){
+  function showSuggestions(){
 
-        var query =
-        document.getElementById("search").value;
+    let query = document.getElementById("search").value.trim();
 
-        if(query.length < 2){
+    if(query.length < 2){
 
-            document.getElementById(
-                "suggestions"
-            ).innerHTML = "";
+        document.getElementById("suggestions").innerHTML = "";
 
-            return;
-        }
+        return;
+    }
 
-        fetch(
-            "/search_temple?query=" +
-            encodeURIComponent(query)
-        )
+    fetch("/search_temple?query=" + encodeURIComponent(query))
 
-        .then(res => res.json())
+    .then(res => res.json())
 
-        .then(data => {
+    .then(data => {
 
-            let html = "";
+        let html = "";
 
-            data.forEach(place => {
+        data.forEach((place, index) => {
 
-                const safeName =
-                place.name
-                .replace(/'/g, "\\'")
-                .replace(/"/g, "&quot;");
+            window["temple_" + index] = place;
 
-                html += `
-
+            html += `
                 <div
                 style="
-                    padding:8px;
+                    padding:10px;
                     cursor:pointer;
                     border-bottom:1px solid #ddd;
+                    background:white;
+                    color:black;
                 "
 
-                onclick="
-                selectSuggestion(
-                    '${safeName}',
-                    '${place.lat}',
-                    '${place.lon}'
-                )">
+                onclick="selectSuggestion(${index})">
 
                     ${place.name}
 
                 </div>
-
-                `;
-            });
-
-            document.getElementById(
-                "suggestions"
-            ).innerHTML = html;
+            `;
         });
+
+        document.getElementById("suggestions").innerHTML = html;
+    });
+}
+    function selectSuggestion(index){
+
+    let place = window["temple_" + index];
+
+    if(!place) return;
+
+    let lat = parseFloat(place.lat);
+    let lon = parseFloat(place.lon);
+
+    document.getElementById("search").value = place.name;
+
+    document.getElementById("suggestions").innerHTML = "";
+
+    if(currentMarker){
+        map.removeLayer(currentMarker);
     }
 
-    function selectSuggestion(name, lat, lon){
-
-        lat = parseFloat(lat);
-
-        lon = parseFloat(lon);
-
-        document.getElementById(
-            "search"
-        ).value = name;
-
-        document.getElementById(
-            "suggestions"
-        ).innerHTML = "";
-
-        map.setView([lat, lon], 15);
-
-        if(currentMarker){
-            map.removeLayer(currentMarker);
-        }
-
-        currentMarker =
-        L.marker([lat, lon])
-
+    currentMarker = L.marker([lat, lon])
         .addTo(map)
-
-        .bindPopup(name)
-
+        .bindPopup(place.name)
         .openPopup();
 
-        selectedTemple = name;
+    map.flyTo([lat, lon], 15);
 
-        saveSearch(name);
-    }
+    selectedTemple = place.name;
+
+    saveSearch(place.name);
+}
 
     function useLocation(){
 
