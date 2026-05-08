@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PilgrimFlow</title>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <title>PilgrimFlow AI</title>
+
+    <link rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
     <style>
 
@@ -110,13 +112,13 @@
             background:white;
             color:black;
             border-radius:8px;
-            max-height:120px;
+            max-height:150px;
             overflow-y:auto;
             margin-bottom:5px;
         }
 
         .suggestion-item{
-            padding:8px;
+            padding:10px;
             cursor:pointer;
             border-bottom:1px solid #ddd;
         }
@@ -179,6 +181,7 @@
         }
 
     </style>
+
 </head>
 
 <body>
@@ -190,14 +193,17 @@
 <div class="panel">
 
     <!-- SEARCH -->
-    <input type="text"
-           id="search"
-           placeholder="Search temple..."
-           oninput="showSuggestions()">
+    <input
+        type="text"
+        id="search"
+        placeholder="Search temple..."
+        oninput="showSuggestions()"
+    >
 
     <div id="suggestions"></div>
 
     <!-- BUTTONS -->
+
     <button class="search-btn" onclick="searchTemple()">
         🔍 Search Temple
     </button>
@@ -215,11 +221,13 @@
     </button>
 
     <!-- RESULT -->
+
     <div id="result">
-        Search a temple to begin...
+        Search any temple in India...
     </div>
 
     <!-- HISTORY -->
+
     <div class="history-box">
 
         <h4>🕘 Recent Searches</h4>
@@ -306,17 +314,25 @@
             selectedTemple = data[0].name;
 
             saveSearch(data[0].name);
+
+        })
+
+        .catch(err => {
+            console.log(err);
+            alert("Search failed");
         });
     }
 
-    // ---------------- SUGGESTIONS ----------------
+    // ---------------- SHOW SUGGESTIONS ----------------
 
     function showSuggestions(){
 
         var query = document.getElementById("search").value;
 
-        if(query.length < 3){
+        if(query.length < 2){
+
             document.getElementById("suggestions").innerHTML = "";
+
             return;
         }
 
@@ -326,23 +342,35 @@
 
         .then(data => {
 
-            let html = "";
+            let box = document.getElementById("suggestions");
+
+            box.innerHTML = "";
 
             data.forEach(place => {
 
-                html += `
-                    <div class="suggestion-item"
-                    onclick="selectSuggestion(
-                        '${place.name.replace(/'/g,"")}',
-                        '${place.lat}',
-                        '${place.lon}'
-                    )">
-                        ${place.name}
-                    </div>
-                `;
+                let div = document.createElement("div");
+
+                div.className = "suggestion-item";
+
+                div.innerText = place.name;
+
+                div.onclick = function(){
+
+                    selectSuggestion(
+                        place.name,
+                        place.lat,
+                        place.lon
+                    );
+                };
+
+                box.appendChild(div);
+
             });
 
-            document.getElementById("suggestions").innerHTML = html;
+        })
+
+        .catch(err => {
+            console.log(err);
         });
     }
 
@@ -354,6 +382,7 @@
         lon = parseFloat(lon);
 
         document.getElementById("search").value = name;
+
         document.getElementById("suggestions").innerHTML = "";
 
         if(marker){
@@ -390,8 +419,6 @@
                 .bindPopup("You are here")
                 .openPopup();
 
-                // SEND TO BACKEND
-
                 fetch("/update_location",{
 
                     method:"POST",
@@ -407,11 +434,14 @@
 
                 });
 
-                alert("Location updated successfully");
+                alert("Location updated");
+
             },
 
             function(error){
-                alert("Location access denied");
+
+                alert("Location permission denied");
+
             }
 
         );
@@ -426,7 +456,7 @@
             return;
         }
 
-        fetch('/crowd/' + encodeURIComponent(selectedTemple))
+        fetch("/crowd/" + encodeURIComponent(selectedTemple))
 
         .then(res => res.json())
 
@@ -438,7 +468,7 @@
 
                 "👥 People Nearby: <b>" + data.people + "</b><br>" +
 
-                "🏛 Temple Capacity: <b>" + data.capacity + "</b><br>" +
+                "🏛 Capacity: <b>" + data.capacity + "</b><br>" +
 
                 "🚦 Crowd Level: " +
                 getBadge(data.crowd_level) +
@@ -462,7 +492,7 @@
 
             "<b>" + selectedTemple + "</b><br><br>" +
 
-            "⏰ Recommended Visit Time:<br><br>" +
+            "⏰ Best Visiting Time:<br><br>" +
 
             "• Early Morning (6 AM - 8 AM)<br>" +
 
@@ -491,7 +521,9 @@
             let box = document.getElementById("historyList");
 
             if(data.length === 0){
+
                 box.innerHTML = "No searches yet";
+
                 return;
             }
 
@@ -501,13 +533,14 @@
 
                 html += `
                     <div class="history-item"
-                    onclick="searchFromHistory('${item.replace(/'/g,"")}')">
+                    onclick="searchFromHistory('${item}')">
                         ${item}
                     </div>
                 `;
             });
 
             box.innerHTML = html;
+
         });
     }
 
