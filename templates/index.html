@@ -254,71 +254,54 @@
             data.suggestion;
     }
 
-    function searchTemple(){
+function searchTemple(){
 
-        var query =
-        document.getElementById("search").value;
+    var query = document.getElementById("search").value.trim();
 
-        if(!query){
+    if(query === ""){
+        alert("Enter temple name");
+        return;
+    }
 
-            alert("Enter temple name");
+    fetch("/search_temple?query=" + encodeURIComponent(query))
 
+    .then(response => response.json())
+
+    .then(data => {
+
+        if(data.length === 0){
+            alert("Temple not found");
             return;
         }
 
-        fetch(
-            "/search_temple?query=" +
-            encodeURIComponent(query)
-        )
+        let temple = data[0];
 
-        .then(res => res.json())
+        let lat = parseFloat(temple.lat);
+        let lon = parseFloat(temple.lon);
 
-        .then(data => {
+        if(currentMarker){
+            map.removeLayer(currentMarker);
+        }
 
-            if(data.length === 0){
-
-                alert("Temple not found");
-
-                return;
-            }
-
-            var lat =
-            parseFloat(data[0].lat);
-
-            var lon =
-            parseFloat(data[0].lon);
-
-            map.setView([lat, lon], 15);
-
-            if(currentMarker){
-                map.removeLayer(currentMarker);
-            }
-
-            currentMarker =
-            L.marker([lat, lon])
-
+        currentMarker = L.marker([lat, lon])
             .addTo(map)
-
-            .bindPopup(data[0].name)
-
+            .bindPopup(temple.name)
             .openPopup();
 
-            selectedTemple = data[0].name;
+        map.flyTo([lat, lon], 15);
 
-            saveSearch(data[0].name);
+        selectedTemple = temple.name;
 
-            document.getElementById(
-                "suggestions"
-            ).innerHTML = "";
-        })
+        saveSearch(temple.name);
 
-        .catch(err => {
+        document.getElementById("suggestions").innerHTML = "";
+    })
 
-            console.log(err);
-
-            alert("Search failed");
-        });
-    }
+    .catch(error => {
+        console.log(error);
+        alert("Search failed");
+    });
+}
 
     function showSuggestions(){
 
