@@ -1,44 +1,68 @@
 <!DOCTYPE html>
-<html>
-<head>
-<title>Admin Panel</title>
-<style>
-body { background:#0f172a; color:white; font-family:Arial; padding:20px; }
-.box { background:white; color:black; padding:20px; border-radius:10px; width:350px; }
-input { width:100%; padding:8px; margin:5px 0; }
-button { width:100%; padding:10px; background:#2563eb; color:white; border:none; }
-table { margin-top:20px; width:100%; background:white; color:black; }
-td, th { padding:10px; border:1px solid #ccc; }
-</style>
-</head>
+<h2>Add / Update Temple Threshold</h2>
 
-<body>
-
-<h2>Admin Panel</h2>
-
-<div class="box">
 <form action="/add_temple" method="POST">
-<input name="name" placeholder="Temple Name" required>
-<input name="capacity" type="number" placeholder="Capacity" required>
-<input name="low" type="number" placeholder="Low Threshold" required>
-<input name="medium" type="number" placeholder="Medium Threshold" required>
-<button>Add / Update</button>
+
+<input type="text" name="name" placeholder="Temple Name" required>
+
+<input type="number" name="capacity" placeholder="Temple Capacity" required>
+
+<input type="number" name="low" placeholder="Low Crowd Threshold" required>
+
+<input type="number" name="medium" placeholder="Medium Crowd Threshold" required>
+
+<button type="submit">Save Temple</button>
+
 </form>
 </div>
 
-<h3>Temple Data</h3>
+<div class="card">
+<h2>Temple Thresholds</h2>
 
 <table>
-<tr><th>Name</th><th>Capacity</th><th>Low</th><th>Medium</th></tr>
-{% for name, val in data.items() %}
 <tr>
-<td>{{name}}</td>
-<td>{{val.capacity}}</td>
-<td>{{val.low}}</td>
-<td>{{val.medium}}</td>
+<th>Temple</th>
+<th>Capacity</th>
+<th>Low</th>
+<th>Medium</th>
+</tr>
+
+{% for temple, info in data.items() %}
+<tr>
+<td>{{temple}}</td>
+<td>{{info.capacity}}</td>
+<td>{{info.low}}</td>
+<td>{{info.medium}}</td>
 </tr>
 {% endfor %}
+
 </table>
+</div>
+
+<div class="card">
+<h2>Registered Users</h2>
+
+<table>
+<tr>
+<th>Username</th>
+<th>Password</th>
+</tr>
+
+{% for username, password in users.items() %}
+<tr>
+<td>{{username}}</td>
+<td>{{password}}</td>
+</tr>
+{% endfor %}
+
+</table>
+</div>
+
+<a href="/logout">
+<button>Logout</button>
+</a>
+
+</div>
 
 </body>
 </html>
