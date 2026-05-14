@@ -1,14 +1,14 @@
 # app.py
 
 from flask import Flask, render_template, request, redirect, jsonify, session
-import random
-import requests
 import sqlite3
-import time
+import requests
+import math
+import random
 
 app = Flask(__name__)
 
-app.secret_key = "pilgrimflow_secret_key"
+app.secret_key = "pilgrim_secret"
 
 
 # ---------------- DATABASE ----------------
@@ -19,23 +19,22 @@ def init_db():
 
     cur = conn.cursor()
 
-    # USERS TABLE
     cur.execute("""
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
+        username TEXT,
         password TEXT
     )
     """)
 
-    # TEMPLE TABLE
     cur.execute("""
     CREATE TABLE IF NOT EXISTS temples(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE,
+        name TEXT,
         capacity INTEGER,
         low_threshold INTEGER,
-        medium_threshold INTEGER
+        medium_threshold INTEGER,
+        radius INTEGER
     )
     """)
 
@@ -45,6 +44,38 @@ def init_db():
 
 
 init_db()
+
+
+# ---------------- LIVE GPS STORAGE ----------------
+
+live_users = []
+
+
+# ---------------- HAVERSINE DISTANCE ----------------
+
+def haversine(lat1, lon1, lat2, lon2):
+
+    R = 6371000
+
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+
+    a = (
+        math.sin(dphi / 2) ** 2
+        +
+        math.cos(phi1)
+        *
+        math.cos(phi2)
+        *
+        math.sin(dlambda / 2) ** 2
+    )
+
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return R * c
 
 
 # ---------------- LOGIN PAGE ----------------
@@ -67,20 +98,12 @@ def signup():
 
     cur = conn.cursor()
 
-    try:
+    cur.execute(
+        "INSERT INTO users(username,password) VALUES(?,?)",
+        (username, password)
+    )
 
-        cur.execute(
-            "INSERT INTO users(username,password) VALUES(?,?)",
-            (username, password)
-        )
-
-        conn.commit()
-
-    except:
-
-        conn.close()
-
-        return "User already exists"
+    conn.commit()
 
     conn.close()
 
@@ -114,7 +137,7 @@ def login():
 
         return redirect("/home")
 
-    return "Invalid Username or Password"
+    return "Invalid Login"
 
 
 # ---------------- ADMIN LOGIN ----------------
@@ -125,7 +148,6 @@ def admin_login():
     username = request.form.get("username")
     password = request.form.get("password")
 
-    # ADMIN PASSWORD
     if username == "admin" and password == "admin123":
 
         session["admin"] = True
@@ -162,13 +184,11 @@ def admin():
 
     cur = conn.cursor()
 
-    # GET TEMPLES
     cur.execute("SELECT * FROM temples")
 
     temples = cur.fetchall()
 
-    # GET USERS
-    cur.execute("SELECT username,password FROM users")
+    cur.execute("SELECT * FROM users")
 
     users = cur.fetchall()
 
@@ -198,15 +218,18 @@ def add_temple():
 
     medium = int(request.form.get("medium"))
 
+    radius = int(request.form.get("radius"))
+
     conn = sqlite3.connect("database.db")
 
     cur = conn.cursor()
 
     cur.execute("""
-    INSERT OR REPLACE INTO temples
-    (name,capacity,low_threshold,medium_threshold)
-    VALUES(?,?,?,?)
-    """, (name, capacity, low, medium))
+    INSERT INTO temples
+    (name,capacity,low_threshold,medium_threshold,radius)
+
+    VALUES(?,?,?,?,?)
+    """, (name, capacity, low, medium, radius))
 
     conn.commit()
 
@@ -222,39 +245,25 @@ def search_temple():
 
     query = request.args.get("query")
 
-    if not query:
-
-        return jsonify([])
-
     url = "https://nominatim.openstreetmap.org/search"
 
     params = {
         "q": query + " temple India",
         "format": "json",
-        "limit": 10
+        "limit": 5
     }
 
     headers = {
         "User-Agent": "PilgrimFlowAI"
     }
 
-    # PREVENT API SPAM
-    time.sleep(1)
+    response = requests.get(
+        url,
+        params=params,
+        headers=headers
+    )
 
-    try:
-
-        response = requests.get(
-            url,
-            params=params,
-            headers=headers,
-            timeout=10
-        )
-
-        data = response.json()
-
-    except:
-
-        return jsonify([])
+    data = response.json()
 
     results = []
 
@@ -267,6 +276,28 @@ def search_temple():
         })
 
     return jsonify(results)
+
+
+# ---------------- UPDATE LIVE LOCATION ----------------
+
+@app.route("/update_location", methods=["POST"])
+def update_location():
+
+    data = request.json
+
+    lat = data.get("lat")
+    lon = data.get("lon")
+
+    if lat and lon:
+
+        live_users.append({
+            "lat": lat,
+            "lon": lon
+        })
+
+    return jsonify({
+        "status": "success"
+    })
 
 
 # ---------------- CROWD DETECTION ----------------
@@ -282,33 +313,79 @@ def crowd(temple):
 
     cur = conn.cursor()
 
-    cur.execute(
-        "SELECT * FROM temples WHERE name LIKE ?",
-        ('%' + temple_name + '%',)
-    )
+    cur.execute("""
+    SELECT * FROM temples
+    WHERE name LIKE ?
+    """, ('%' + temple_name + '%',))
 
     temple_data = cur.fetchone()
 
     conn.close()
 
     # DEFAULT VALUES
+
     capacity = 300
     low_threshold = 100
     medium_threshold = 200
+    radius = 500
 
-    # IF TEMPLE EXISTS IN ADMIN PANEL
     if temple_data:
 
         capacity = temple_data["capacity"]
-
         low_threshold = temple_data["low_threshold"]
-
         medium_threshold = temple_data["medium_threshold"]
+        radius = temple_data["radius"]
 
-    # SIMULATED PEOPLE COUNT
-    people = random.randint(0, capacity)
+    # SEARCH TEMPLE GPS
+
+    url = "https://nominatim.openstreetmap.org/search"
+
+    params = {
+        "q": temple + " temple India",
+        "format": "json",
+        "limit": 1
+    }
+
+    headers = {
+        "User-Agent": "PilgrimFlowAI"
+    }
+
+    response = requests.get(
+        url,
+        params=params,
+        headers=headers
+    )
+
+    data = response.json()
+
+    if len(data) == 0:
+
+        return jsonify({
+            "error": "Temple not found"
+        })
+
+    temple_lat = float(data[0]["lat"])
+    temple_lon = float(data[0]["lon"])
+
+    # COUNT PEOPLE INSIDE RADIUS
+
+    people = 0
+
+    for user in live_users:
+
+        distance = haversine(
+            temple_lat,
+            temple_lon,
+            float(user["lat"]),
+            float(user["lon"])
+        )
+
+        if distance <= radius:
+
+            people += 1
 
     # CROWD LOGIC
+
     if people < low_threshold:
 
         crowd_level = "Low"
@@ -319,13 +396,13 @@ def crowd(temple):
 
         crowd_level = "Medium"
 
-        suggestion = "Moderate crowd"
+        suggestion = "Moderate crowd nearby"
 
     else:
 
         crowd_level = "High"
 
-        suggestion = "Avoid peak hours"
+        suggestion = "Heavy crowd and traffic nearby"
 
     score = int((people / capacity) * 100)
 
@@ -338,6 +415,8 @@ def crowd(temple):
         "capacity": capacity,
 
         "score": score,
+
+        "radius": radius,
 
         "crowd_level": crowd_level,
 
@@ -352,7 +431,7 @@ def predict(temple):
 
     best = random.choice([
 
-        "5 AM - Very Peaceful",
+        "5 AM - Peaceful",
 
         "6 AM - Low Crowd",
 
@@ -369,37 +448,6 @@ def predict(temple):
 
         "best_time": best
     })
-
-
-# ---------------- SEARCH HISTORY ----------------
-
-search_history = []
-
-
-@app.route("/save_search/<name>")
-def save_search(name):
-
-    if name not in search_history:
-
-        search_history.insert(0, name)
-
-    return "ok"
-
-
-@app.route("/history")
-def history():
-
-    return jsonify(search_history[:5])
-
-
-# ---------------- LOGOUT ----------------
-
-@app.route("/logout")
-def logout():
-
-    session.clear()
-
-    return redirect("/")
 
 
 # ---------------- RUN ----------------
