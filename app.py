@@ -12,6 +12,7 @@ app.secret_key = "pilgrimflow_secret"
 def init_db():
 
     conn = sqlite3.connect("database.db")
+
     cur = conn.cursor()
 
     # USERS TABLE
@@ -41,7 +42,7 @@ def init_db():
 init_db()
 
 
-# ---------------- SPLASH / LOGIN ----------------
+# ---------------- LOGIN PAGE ----------------
 
 @app.route("/")
 def splash():
@@ -60,6 +61,7 @@ def signup():
     cur = conn.cursor()
 
     try:
+
         cur.execute(
             "INSERT INTO users(username,password) VALUES(?,?)",
             (username, password)
@@ -68,15 +70,17 @@ def signup():
         conn.commit()
 
     except:
+
         conn.close()
+
         return "User already exists"
 
     conn.close()
 
-    return redirect(url_for("splash"))
+    return redirect("/")
 
 
-# ---------------- LOGIN ----------------
+# ---------------- USER LOGIN ----------------
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -97,8 +101,10 @@ def login():
     conn.close()
 
     if user:
+
         session["user"] = username
-        return redirect(url_for("home"))
+
+        return redirect("/home")
 
     return "Invalid Username or Password"
 
@@ -115,7 +121,7 @@ def admin_login():
 
         session["admin"] = True
 
-        return redirect(url_for("admin"))
+        return redirect("/admin")
 
     return "Invalid Admin Credentials"
 
@@ -140,14 +146,17 @@ def admin():
         return redirect("/")
 
     conn = sqlite3.connect("database.db")
+
     conn.row_factory = sqlite3.Row
 
     cur = conn.cursor()
 
     cur.execute("SELECT * FROM temples")
+
     temples = cur.fetchall()
 
     cur.execute("SELECT username,password FROM users")
+
     users = cur.fetchall()
 
     conn.close()
@@ -180,10 +189,13 @@ def add_temple():
     name = request.form.get("name").lower()
 
     capacity = int(request.form.get("capacity"))
+
     low = int(request.form.get("low"))
+
     medium = int(request.form.get("medium"))
 
     conn = sqlite3.connect("database.db")
+
     cur = conn.cursor()
 
     cur.execute("""
@@ -193,9 +205,10 @@ def add_temple():
     """, (name, capacity, low, medium))
 
     conn.commit()
+
     conn.close()
 
-    return redirect(url_for("admin"))
+    return redirect("/admin")
 
 
 # ---------------- SEARCH TEMPLE ----------------
@@ -220,10 +233,15 @@ def search_temple():
     response = requests.get(
         url,
         params=params,
-        headers=headers
+        headers=headers,
+        timeout=10
     )
 
-    data = response.json()
+    try:
+        data = response.json()
+
+    except:
+        return jsonify([])
 
     results = []
 
@@ -238,7 +256,7 @@ def search_temple():
     return jsonify(results)
 
 
-# ---------------- CROWD DETECTION ----------------
+# ---------------- CROWD ----------------
 
 @app.route("/crowd/<temple>")
 def crowd(temple):
@@ -246,6 +264,7 @@ def crowd(temple):
     temple_name = temple.lower()
 
     conn = sqlite3.connect("database.db")
+
     conn.row_factory = sqlite3.Row
 
     cur = conn.cursor()
@@ -267,7 +286,9 @@ def crowd(temple):
     if temple_data:
 
         capacity = temple_data["capacity"]
+
         low_threshold = temple_data["low_threshold"]
+
         medium_threshold = temple_data["medium_threshold"]
 
     # SIMULATED PEOPLE COUNT
@@ -275,15 +296,21 @@ def crowd(temple):
 
     # CROWD LEVEL
     if people < low_threshold:
+
         crowd_level = "Low"
+
         suggestion = "Safe to visit"
 
     elif people < medium_threshold:
+
         crowd_level = "Medium"
+
         suggestion = "Moderate crowd"
 
     else:
+
         crowd_level = "High"
+
         suggestion = "Avoid peak hours"
 
     score = int((people / capacity) * 100)
@@ -314,6 +341,29 @@ def predict(temple):
         "temple": temple,
         "best_time": best
     })
+
+
+# ---------------- SAVE SEARCH ----------------
+
+search_history = []
+
+
+@app.route("/save_search/<name>")
+def save_search(name):
+
+    if name not in search_history:
+
+        search_history.insert(0, name)
+
+    return "ok"
+
+
+# ---------------- HISTORY ----------------
+
+@app.route("/history")
+def history():
+
+    return jsonify(search_history[:5])
 
 
 # ---------------- LOGOUT ----------------
