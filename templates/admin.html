@@ -2,6 +2,7 @@
 
 <!DOCTYPE html>
 <html>
+
 <head>
 
 <title>Admin Panel</title>
@@ -27,6 +28,7 @@ color:black;
 padding:20px;
 border-radius:15px;
 margin-bottom:20px;
+box-shadow:0 0 15px rgba(0,0,0,0.2);
 }
 
 input{
@@ -37,6 +39,7 @@ margin-bottom:10px;
 border-radius:8px;
 border:1px solid #ccc;
 box-sizing:border-box;
+font-size:14px;
 }
 
 button{
@@ -48,6 +51,11 @@ color:white;
 font-weight:bold;
 cursor:pointer;
 width:100%;
+font-size:15px;
+}
+
+button:hover{
+background:#2563eb;
 }
 
 table{
@@ -59,8 +67,9 @@ margin-top:15px;
 table th,
 table td{
 border:1px solid #ddd;
-padding:10px;
+padding:12px;
 text-align:left;
+font-size:14px;
 }
 
 table th{
@@ -75,11 +84,23 @@ margin-bottom:20px;
 .logout{
 display:inline-block;
 margin-top:20px;
-padding:10px 20px;
-background:red;
+padding:12px 20px;
+background:#ef4444;
 color:white;
 text-decoration:none;
 border-radius:8px;
+font-weight:bold;
+}
+
+.logout:hover{
+background:#dc2626;
+}
+
+.small-text{
+font-size:13px;
+color:#555;
+margin-top:-5px;
+margin-bottom:10px;
 }
 
 </style>
@@ -91,8 +112,10 @@ border-radius:8px;
 <div class="container">
 
 <h1>
-🛠 Admin Panel
+🛠 PilgrimFlow Admin Panel
 </h1>
+
+<!-- ADD TEMPLE -->
 
 <div class="card">
 
@@ -112,11 +135,19 @@ name="capacity"
 placeholder="Temple Capacity"
 required>
 
+<div class="small-text">
+Example: Maximum people temple can handle
+</div>
+
 <input
 type="number"
 name="low"
 placeholder="Low Crowd Threshold"
 required>
+
+<div class="small-text">
+Below this number → LOW crowd
+</div>
 
 <input
 type="number"
@@ -124,25 +155,46 @@ name="medium"
 placeholder="Medium Crowd Threshold"
 required>
 
+<div class="small-text">
+Above this → HIGH crowd
+</div>
+
+<input
+type="number"
+name="radius"
+placeholder="Detection Radius (meters)"
+required>
+
+<div class="small-text">
+Nearby GPS users inside this radius are counted
+</div>
+
 <button type="submit">
-Save Temple
+
+Save Temple Settings
+
 </button>
 
 </form>
 
 </div>
 
+<!-- TEMPLE TABLE -->
+
 <div class="card">
 
-<h2>Temple Thresholds</h2>
+<h2>Temple Threshold Configuration</h2>
 
 <table>
 
 <tr>
+
 <th>Temple</th>
 <th>Capacity</th>
 <th>Low Threshold</th>
 <th>Medium Threshold</th>
+<th>Radius</th>
+
 </tr>
 
 {% for temple in temples %}
@@ -157,6 +209,8 @@ Save Temple
 
 <td>{{ temple.medium_threshold }}</td>
 
+<td>{{ temple.radius }} m</td>
+
 </tr>
 
 {% endfor %}
@@ -164,6 +218,8 @@ Save Temple
 </table>
 
 </div>
+
+<!-- USERS TABLE -->
 
 <div class="card">
 
@@ -173,7 +229,6 @@ Save Temple
 
 <tr>
 <th>Username</th>
-<th>Password</th>
 </tr>
 
 {% for user in users %}
@@ -181,8 +236,6 @@ Save Temple
 <tr>
 
 <td>{{ user.username }}</td>
-
-<td>{{ user.password }}</td>
 
 </tr>
 
@@ -192,8 +245,10 @@ Save Temple
 
 </div>
 
-<a href="/logout" class="logout">
+<a href="/" class="logout">
+
 Logout
+
 </a>
 
 </div>
