@@ -1,3 +1,5 @@
+<!-- templates/index.html -->
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -31,6 +33,7 @@ font-weight:bold;
 color:white;
 background:rgba(0,0,0,0.6);
 z-index:1000;
+backdrop-filter:blur(10px);
 }
 
 .panel{
@@ -105,6 +108,7 @@ color:black;
 padding:12px;
 border-radius:10px;
 font-size:14px;
+line-height:1.6;
 }
 
 .history-box{
@@ -122,6 +126,10 @@ border-radius:8px;
 background:#f1f5f9;
 cursor:pointer;
 font-size:13px;
+}
+
+.history-item:hover{
+background:#dbeafe;
 }
 
 .badge{
@@ -149,7 +157,7 @@ background:#ef4444;
 <body>
 
 <div class="top-bar">
-🛕 PilgrimFlow
+🛕 PilgrimFlow AI
 </div>
 
 <div class="panel">
@@ -209,12 +217,17 @@ No searches yet
 var map = L.map('map').setView([20.5937, 78.9629], 5);
 
 L.tileLayer(
-'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+attribution:'© OpenStreetMap'
+}
 ).addTo(map);
 
 var selectedTemple = "";
 
 var currentMarker = null;
+
+let typingTimer;
 
 function getBadge(level){
 
@@ -262,7 +275,10 @@ alert("Enter temple name");
 return;
 }
 
-fetch("/search_temple?query=" + encodeURIComponent(query))
+fetch(
+"/search_temple?query=" +
+encodeURIComponent(query)
+)
 
 .then(response => response.json())
 
@@ -296,7 +312,9 @@ selectedTemple = temple.name;
 
 saveSearch(temple.name);
 
-document.getElementById("suggestions").innerHTML = "";
+document.getElementById(
+"suggestions"
+).innerHTML = "";
 
 })
 
@@ -311,17 +329,26 @@ alert("Search failed");
 
 function showSuggestions(){
 
+clearTimeout(typingTimer);
+
+typingTimer = setTimeout(() => {
+
 let query =
 document.getElementById("search").value.trim();
 
 if(query.length < 2){
 
-document.getElementById("suggestions").innerHTML = "";
+document.getElementById(
+"suggestions"
+).innerHTML = "";
 
 return;
 }
 
-fetch("/search_temple?query=" + encodeURIComponent(query))
+fetch(
+"/search_temple?query=" +
+encodeURIComponent(query)
+)
 
 .then(res => res.json())
 
@@ -351,8 +378,12 @@ ${place.name}
 `;
 });
 
-document.getElementById("suggestions").innerHTML = html;
+document.getElementById(
+"suggestions"
+).innerHTML = html;
 });
+
+}, 600);
 }
 
 function selectSuggestion(index){
@@ -365,9 +396,13 @@ let lat = parseFloat(place.lat);
 
 let lon = parseFloat(place.lon);
 
-document.getElementById("search").value = place.name;
+document.getElementById(
+"search"
+).value = place.name;
 
-document.getElementById("suggestions").innerHTML = "";
+document.getElementById(
+"suggestions"
+).innerHTML = "";
 
 if(currentMarker){
 map.removeLayer(currentMarker);
@@ -419,7 +454,10 @@ alert("Search a temple first");
 return;
 }
 
-fetch("/crowd/" + encodeURIComponent(selectedTemple))
+fetch(
+"/crowd/" +
+encodeURIComponent(selectedTemple)
+)
 
 .then(res => res.json())
 
@@ -437,23 +475,34 @@ alert("Search a temple first");
 return;
 }
 
-fetch("/predict/" + encodeURIComponent(selectedTemple))
+fetch(
+"/predict/" +
+encodeURIComponent(selectedTemple)
+)
 
 .then(res => res.json())
 
 .then(data => {
 
-document.getElementById("result").innerHTML =
+document.getElementById(
+"result"
+).innerHTML =
 
-"<b>" + data.temple + "</b><br><br>" +
+"<b>" +
+data.temple +
+"</b><br><br>" +
 
-"Best Time: " + data.best_time;
+"Best Time: " +
+data.best_time;
 });
 }
 
 function saveSearch(name){
 
-fetch("/save_search/" + encodeURIComponent(name));
+fetch(
+"/save_search/" +
+encodeURIComponent(name)
+);
 
 loadHistory();
 }
@@ -477,10 +526,15 @@ else{
 
 data.forEach(item => {
 
+const safeItem =
+item
+.replace(/'/g, "\\'")
+.replace(/"/g, "&quot;");
+
 html += `
 <div
 class="history-item"
-onclick="searchFromHistory('${item}')">
+onclick="searchFromHistory('${safeItem}')">
 
 ${item}
 
@@ -489,13 +543,17 @@ ${item}
 });
 }
 
-document.getElementById("historyList").innerHTML = html;
+document.getElementById(
+"historyList"
+).innerHTML = html;
 });
 }
 
 function searchFromHistory(name){
 
-document.getElementById("search").value = name;
+document.getElementById(
+"search"
+).value = name;
 
 searchTemple();
 }
