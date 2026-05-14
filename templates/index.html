@@ -2,8 +2,10 @@
 
 <!DOCTYPE html>
 <html>
+
 <head>
-<title>PilgrimFlow</title>
+
+<title>PilgrimFlow AI</title>
 
 <link rel="stylesheet"
 href="https://unpkg.com/leaflet/dist/leaflet.css"/>
@@ -26,7 +28,7 @@ width:100%;
 position:absolute;
 top:0;
 width:100%;
-padding:12px;
+padding:14px;
 text-align:center;
 font-size:22px;
 font-weight:bold;
@@ -40,7 +42,7 @@ backdrop-filter:blur(10px);
 position:absolute;
 top:70px;
 left:20px;
-width:340px;
+width:350px;
 padding:15px;
 border-radius:15px;
 background:rgba(255,255,255,0.18);
@@ -52,13 +54,14 @@ overflow-y:auto;
 
 input{
 width:100%;
-padding:10px;
+padding:12px;
 border:none;
 border-radius:8px;
 margin-bottom:5px;
 background:#1c1c1c;
 color:white;
 box-sizing:border-box;
+font-size:14px;
 }
 
 button{
@@ -101,6 +104,16 @@ overflow-y:auto;
 margin-bottom:5px;
 }
 
+.suggestion-item{
+padding:10px;
+cursor:pointer;
+border-bottom:1px solid #ddd;
+}
+
+.suggestion-item:hover{
+background:#f1f5f9;
+}
+
 #result{
 margin-top:12px;
 background:white;
@@ -108,7 +121,7 @@ color:black;
 padding:12px;
 border-radius:10px;
 font-size:14px;
-line-height:1.6;
+line-height:1.7;
 }
 
 .history-box{
@@ -152,6 +165,7 @@ background:#ef4444;
 }
 
 </style>
+
 </head>
 
 <body>
@@ -165,7 +179,7 @@ background:#ef4444;
 <input
 type="text"
 id="search"
-placeholder="Search temple..."
+placeholder="Search Temple..."
 oninput="showSuggestions()">
 
 <div id="suggestions"></div>
@@ -173,28 +187,40 @@ oninput="showSuggestions()">
 <button
 class="search-btn"
 onclick="searchTemple()">
-Search
+
+🔍 Search Temple
+
 </button>
 
 <button
 class="location-btn"
 onclick="useLocation()">
+
 📍 Use My Location
+
 </button>
 
 <button
 class="crowd-btn"
 onclick="getCrowd()">
-Check Crowd
+
+🚦 Check Crowd
+
 </button>
 
 <button
 class="predict-btn"
 onclick="getPrediction()">
-Best Time
+
+⏰ Best Time
+
 </button>
 
-<div id="result"></div>
+<div id="result">
+
+Search any temple to begin.
+
+</div>
 
 <div class="history-box">
 
@@ -223,11 +249,42 @@ attribution:'© OpenStreetMap'
 }
 ).addTo(map);
 
-var selectedTemple = "";
-
 var currentMarker = null;
 
+var selectedTemple = "";
+
 let typingTimer;
+
+
+// ---------------- LIVE GPS TRACKING ----------------
+
+if(navigator.geolocation){
+
+navigator.geolocation.watchPosition(function(position){
+
+fetch("/update_location", {
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+lat: position.coords.latitude,
+lon: position.coords.longitude
+
+})
+
+});
+
+});
+
+}
+
+
+// ---------------- BADGE ----------------
 
 function getBadge(level){
 
@@ -242,26 +299,34 @@ return "<span class='badge medium'>Medium</span>";
 return "<span class='badge low'>Low</span>";
 }
 
+
+// ---------------- SHOW RESULT ----------------
+
 function showResult(data){
 
 document.getElementById("result").innerHTML =
 
 "<b>" + data.temple + "</b><br><br>" +
 
-"People: " + data.people + "<br>" +
+"👥 Nearby People: " + data.people + "<br>" +
 
-"Capacity: " + data.capacity + "<br>" +
+"🏟 Capacity: " + data.capacity + "<br>" +
 
-"Score: " + data.score + "%<br><br>" +
+"📡 Detection Radius: " + data.radius + " meters<br>" +
 
-"Crowd Level: " +
+"📊 Crowd Score: " + data.score + "%<br><br>" +
+
+"🚦 Crowd Level: " +
 
 getBadge(data.crowd_level) +
 
 "<br><br>" +
 
-data.suggestion;
+"💡 " + data.suggestion;
 }
+
+
+// ---------------- SEARCH TEMPLE ----------------
 
 function searchTemple(){
 
@@ -327,6 +392,9 @@ alert("Search failed");
 });
 }
 
+
+// ---------------- AUTO SUGGESTIONS ----------------
+
 function showSuggestions(){
 
 clearTimeout(typingTimer);
@@ -362,14 +430,7 @@ window["temple_" + index] = place;
 
 html += `
 <div
-style="
-padding:10px;
-cursor:pointer;
-border-bottom:1px solid #ddd;
-background:white;
-color:black;
-"
-
+class="suggestion-item"
 onclick="selectSuggestion(${index})">
 
 ${place.name}
@@ -385,6 +446,9 @@ document.getElementById(
 
 }, 600);
 }
+
+
+// ---------------- SELECT SUGGESTION ----------------
 
 function selectSuggestion(index){
 
@@ -420,6 +484,9 @@ selectedTemple = place.name;
 saveSearch(place.name);
 }
 
+
+// ---------------- USER LOCATION ----------------
+
 function useLocation(){
 
 if(navigator.geolocation){
@@ -445,6 +512,9 @@ currentMarker = L.marker([lat, lon])
 }
 }
 
+
+// ---------------- CROWD ----------------
+
 function getCrowd(){
 
 if(!selectedTemple){
@@ -462,9 +532,14 @@ encodeURIComponent(selectedTemple)
 .then(res => res.json())
 
 .then(data => {
+
 showResult(data);
+
 });
 }
+
+
+// ---------------- BEST TIME ----------------
 
 function getPrediction(){
 
@@ -492,10 +567,15 @@ document.getElementById(
 data.temple +
 "</b><br><br>" +
 
-"Best Time: " +
+"⏰ Best Time:<br><br>" +
+
 data.best_time;
+
 });
 }
+
+
+// ---------------- SEARCH HISTORY ----------------
 
 function saveSearch(name){
 
