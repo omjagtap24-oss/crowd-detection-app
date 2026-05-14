@@ -1,14 +1,14 @@
 # app.py
 
-from flask import Flask, render_template, request, redirect, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for
+from flask import jsonify, session
 import sqlite3
 import requests
-import math
 import random
 
 app = Flask(__name__)
 
-app.secret_key = "pilgrim_secret"
+app.secret_key = "pilgrimflow_secret"
 
 
 # ---------------- DATABASE ----------------
@@ -19,23 +19,40 @@ def init_db():
 
     cur = conn.cursor()
 
+    # USERS TABLE
+
     cur.execute("""
+
     CREATE TABLE IF NOT EXISTS users(
+
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT,
         password TEXT
+
     )
+
     """)
 
+    # TEMPLES TABLE
+
     cur.execute("""
+
     CREATE TABLE IF NOT EXISTS temples(
+
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+
         name TEXT,
+
         capacity INTEGER,
+
         low_threshold INTEGER,
+
         medium_threshold INTEGER,
+
         radius INTEGER
+
     )
+
     """)
 
     conn.commit()
@@ -46,39 +63,7 @@ def init_db():
 init_db()
 
 
-# ---------------- LIVE GPS STORAGE ----------------
-
-live_users = []
-
-
-# ---------------- HAVERSINE DISTANCE ----------------
-
-def haversine(lat1, lon1, lat2, lon2):
-
-    R = 6371000
-
-    phi1 = math.radians(lat1)
-    phi2 = math.radians(lat2)
-
-    dphi = math.radians(lat2 - lat1)
-    dlambda = math.radians(lon2 - lon1)
-
-    a = (
-        math.sin(dphi / 2) ** 2
-        +
-        math.cos(phi1)
-        *
-        math.cos(phi2)
-        *
-        math.sin(dlambda / 2) ** 2
-    )
-
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-    return R * c
-
-
-# ---------------- LOGIN PAGE ----------------
+# ---------------- HOME ----------------
 
 @app.route("/")
 def splash():
@@ -91,17 +76,20 @@ def splash():
 @app.route("/signup", methods=["POST"])
 def signup():
 
-    username = request.form.get("username")
-    password = request.form.get("password")
+    username = request.form["username"]
+
+    password = request.form["password"]
 
     conn = sqlite3.connect("database.db")
 
     cur = conn.cursor()
 
-    cur.execute(
-        "INSERT INTO users(username,password) VALUES(?,?)",
-        (username, password)
-    )
+    cur.execute("""
+
+    INSERT INTO users(username,password)
+    VALUES(?,?)
+
+    """, (username, password))
 
     conn.commit()
 
@@ -110,22 +98,25 @@ def signup():
     return redirect("/")
 
 
-# ---------------- USER LOGIN ----------------
+# ---------------- LOGIN ----------------
 
 @app.route("/login", methods=["POST"])
 def login():
 
-    username = request.form.get("username")
-    password = request.form.get("password")
+    username = request.form["username"]
+
+    password = request.form["password"]
 
     conn = sqlite3.connect("database.db")
 
     cur = conn.cursor()
 
-    cur.execute(
-        "SELECT * FROM users WHERE username=? AND password=?",
-        (username, password)
-    )
+    cur.execute("""
+
+    SELECT * FROM users
+    WHERE username=? AND password=?
+
+    """, (username, password))
 
     user = cur.fetchone()
 
@@ -137,27 +128,10 @@ def login():
 
         return redirect("/home")
 
-    return "Invalid Login"
+    return "Invalid Username or Password"
 
 
-# ---------------- ADMIN LOGIN ----------------
-
-@app.route("/admin_login", methods=["POST"])
-def admin_login():
-
-    username = request.form.get("username")
-    password = request.form.get("password")
-
-    if username == "admin" and password == "admin123":
-
-        session["admin"] = True
-
-        return redirect("/admin")
-
-    return "Invalid Admin Credentials"
-
-
-# ---------------- HOME ----------------
+# ---------------- USER HOME ----------------
 
 @app.route("/home")
 def home():
@@ -167,6 +141,26 @@ def home():
         return redirect("/")
 
     return render_template("index.html")
+
+
+# ---------------- ADMIN LOGIN ----------------
+
+@app.route("/admin_login", methods=["POST"])
+def admin_login():
+
+    username = request.form["username"]
+
+    password = request.form["password"]
+
+    # CHANGE THIS IF YOU WANT
+
+    if username == "admin" and password == "admin123":
+
+        session["admin"] = True
+
+        return redirect("/admin")
+
+    return "Invalid Admin Credentials"
 
 
 # ---------------- ADMIN PANEL ----------------
@@ -184,20 +178,24 @@ def admin():
 
     cur = conn.cursor()
 
+    cur.execute("SELECT username FROM users")
+
+    users = cur.fetchall()
+
     cur.execute("SELECT * FROM temples")
 
     temples = cur.fetchall()
 
-    cur.execute("SELECT * FROM users")
-
-    users = cur.fetchall()
-
     conn.close()
 
     return render_template(
+
         "admin.html",
-        temples=temples,
-        users=users
+
+        users=users,
+
+        temples=temples
+
     )
 
 
@@ -210,26 +208,79 @@ def add_temple():
 
         return redirect("/")
 
-    name = request.form.get("name").lower()
+    name = request.form["name"]
 
-    capacity = int(request.form.get("capacity"))
+    capacity = request.form["capacity"]
 
-    low = int(request.form.get("low"))
+    low = request.form["low"]
 
-    medium = int(request.form.get("medium"))
+    medium = request.form["medium"]
 
-    radius = int(request.form.get("radius"))
+    radius = request.form["radius"]
 
     conn = sqlite3.connect("database.db")
 
     cur = conn.cursor()
 
-    cur.execute("""
-    INSERT INTO temples
-    (name,capacity,low_threshold,medium_threshold,radius)
+    # CHECK EXISTING
 
-    VALUES(?,?,?,?,?)
-    """, (name, capacity, low, medium, radius))
+    cur.execute("""
+
+    SELECT * FROM temples
+    WHERE name=?
+
+    """, (name,))
+
+    existing = cur.fetchone()
+
+    if existing:
+
+        cur.execute("""
+
+        UPDATE temples
+
+        SET capacity=?,
+            low_threshold=?,
+            medium_threshold=?,
+            radius=?
+
+        WHERE name=?
+
+        """, (
+
+            capacity,
+            low,
+            medium,
+            radius,
+            name
+
+        ))
+
+    else:
+
+        cur.execute("""
+
+        INSERT INTO temples(
+
+            name,
+            capacity,
+            low_threshold,
+            medium_threshold,
+            radius
+
+        )
+
+        VALUES(?,?,?,?,?)
+
+        """, (
+
+            name,
+            capacity,
+            low,
+            medium,
+            radius
+
+        ))
 
     conn.commit()
 
@@ -245,59 +296,60 @@ def search_temple():
 
     query = request.args.get("query")
 
+    if not query:
+
+        return jsonify([])
+
     url = "https://nominatim.openstreetmap.org/search"
 
     params = {
+
         "q": query + " temple India",
+
         "format": "json",
-        "limit": 5
+
+        "limit": 10
+
     }
 
     headers = {
-        "User-Agent": "PilgrimFlowAI"
+
+        "User-Agent": "PilgrimFlow"
+
     }
 
-    response = requests.get(
-        url,
-        params=params,
-        headers=headers
-    )
+    try:
 
-    data = response.json()
+        response = requests.get(
 
-    results = []
+            url,
+            params=params,
+            headers=headers,
+            timeout=10
 
-    for place in data:
+        )
 
-        results.append({
-            "name": place.get("display_name"),
-            "lat": place.get("lat"),
-            "lon": place.get("lon")
-        })
+        data = response.json()
 
-    return jsonify(results)
+        results = []
 
+        for place in data:
 
-# ---------------- UPDATE LIVE LOCATION ----------------
+            results.append({
 
-@app.route("/update_location", methods=["POST"])
-def update_location():
+                "name": place.get("display_name"),
 
-    data = request.json
+                "lat": place.get("lat"),
 
-    lat = data.get("lat")
-    lon = data.get("lon")
+                "lon": place.get("lon")
 
-    if lat and lon:
+            })
 
-        live_users.append({
-            "lat": lat,
-            "lon": lon
-        })
+        return jsonify(results)
 
-    return jsonify({
-        "status": "success"
-    })
+    except:
+
+        return jsonify([])
 
 
 # ---------------- CROWD DETECTION ----------------
@@ -314,8 +366,10 @@ def crowd(temple):
     cur = conn.cursor()
 
     cur.execute("""
+
     SELECT * FROM temples
-    WHERE name LIKE ?
+    WHERE LOWER(name) LIKE ?
+
     """, ('%' + temple_name + '%',))
 
     temple_data = cur.fetchone()
@@ -329,60 +383,21 @@ def crowd(temple):
     medium_threshold = 200
     radius = 500
 
+    # ADMIN VALUES
+
     if temple_data:
 
         capacity = temple_data["capacity"]
+
         low_threshold = temple_data["low_threshold"]
+
         medium_threshold = temple_data["medium_threshold"]
+
         radius = temple_data["radius"]
 
-    # SEARCH TEMPLE GPS
+    # SIMULATED PEOPLE COUNT
 
-    url = "https://nominatim.openstreetmap.org/search"
-
-    params = {
-        "q": temple + " temple India",
-        "format": "json",
-        "limit": 1
-    }
-
-    headers = {
-        "User-Agent": "PilgrimFlowAI"
-    }
-
-    response = requests.get(
-        url,
-        params=params,
-        headers=headers
-    )
-
-    data = response.json()
-
-    if len(data) == 0:
-
-        return jsonify({
-            "error": "Temple not found"
-        })
-
-    temple_lat = float(data[0]["lat"])
-    temple_lon = float(data[0]["lon"])
-
-    # COUNT PEOPLE INSIDE RADIUS
-
-    people = 0
-
-    for user in live_users:
-
-        distance = haversine(
-            temple_lat,
-            temple_lon,
-            float(user["lat"]),
-            float(user["lon"])
-        )
-
-        if distance <= radius:
-
-            people += 1
+    people = random.randint(0, capacity)
 
     # CROWD LOGIC
 
@@ -414,13 +429,14 @@ def crowd(temple):
 
         "capacity": capacity,
 
-        "score": score,
-
         "radius": radius,
+
+        "score": score,
 
         "crowd_level": crowd_level,
 
         "suggestion": suggestion
+
     })
 
 
@@ -429,25 +445,32 @@ def crowd(temple):
 @app.route("/predict/<temple>")
 def predict(temple):
 
-    best = random.choice([
+    times = [
 
-        "5 AM - Peaceful",
+        "6 AM - Peaceful Visit",
+        "8 AM - Moderate Crowd",
+        "2 PM - Less Waiting",
+        "8 PM - Best Time"
 
-        "6 AM - Low Crowd",
-
-        "8 AM - Best Time",
-
-        "2 PM - Moderate Crowd",
-
-        "8 PM - Peaceful Visit"
-    ])
+    ]
 
     return jsonify({
 
         "temple": temple,
 
-        "best_time": best
+        "best_time": random.choice(times)
+
     })
+
+
+# ---------------- LOGOUT ----------------
+
+@app.route("/logout")
+def logout():
+
+    session.clear()
+
+    return redirect("/")
 
 
 # ---------------- RUN ----------------
