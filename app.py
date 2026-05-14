@@ -1,10 +1,14 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, session
+# app.py
+
+from flask import Flask, render_template, request, redirect, jsonify, session
 import random
 import requests
 import sqlite3
+import time
 
 app = Flask(__name__)
-app.secret_key = "pilgrimflow_secret"
+
+app.secret_key = "pilgrimflow_secret_key"
 
 
 # ---------------- DATABASE ----------------
@@ -36,6 +40,7 @@ def init_db():
     """)
 
     conn.commit()
+
     conn.close()
 
 
@@ -46,6 +51,7 @@ init_db()
 
 @app.route("/")
 def splash():
+
     return render_template("login.html")
 
 
@@ -58,6 +64,7 @@ def signup():
     password = request.form.get("password")
 
     conn = sqlite3.connect("database.db")
+
     cur = conn.cursor()
 
     try:
@@ -89,6 +96,7 @@ def login():
     password = request.form.get("password")
 
     conn = sqlite3.connect("database.db")
+
     cur = conn.cursor()
 
     cur.execute(
@@ -117,6 +125,7 @@ def admin_login():
     username = request.form.get("username")
     password = request.form.get("password")
 
+    # ADMIN PASSWORD
     if username == "admin" and password == "admin123":
 
         session["admin"] = True
@@ -132,6 +141,7 @@ def admin_login():
 def home():
 
     if "user" not in session:
+
         return redirect("/")
 
     return render_template("index.html")
@@ -143,6 +153,7 @@ def home():
 def admin():
 
     if "admin" not in session:
+
         return redirect("/")
 
     conn = sqlite3.connect("database.db")
@@ -151,29 +162,21 @@ def admin():
 
     cur = conn.cursor()
 
+    # GET TEMPLES
     cur.execute("SELECT * FROM temples")
 
     temples = cur.fetchall()
 
+    # GET USERS
     cur.execute("SELECT username,password FROM users")
 
     users = cur.fetchall()
 
     conn.close()
 
-    temple_data = {}
-
-    for t in temples:
-
-        temple_data[t["name"]] = {
-            "capacity": t["capacity"],
-            "low": t["low_threshold"],
-            "medium": t["medium_threshold"]
-        }
-
     return render_template(
         "admin.html",
-        data=temple_data,
+        temples=temples,
         users=users
     )
 
@@ -184,6 +187,7 @@ def admin():
 def add_temple():
 
     if "admin" not in session:
+
         return redirect("/")
 
     name = request.form.get("name").lower()
@@ -218,6 +222,10 @@ def search_temple():
 
     query = request.args.get("query")
 
+    if not query:
+
+        return jsonify([])
+
     url = "https://nominatim.openstreetmap.org/search"
 
     params = {
@@ -230,17 +238,22 @@ def search_temple():
         "User-Agent": "PilgrimFlowAI"
     }
 
-    response = requests.get(
-        url,
-        params=params,
-        headers=headers,
-        timeout=10
-    )
+    # PREVENT API SPAM
+    time.sleep(1)
 
     try:
+
+        response = requests.get(
+            url,
+            params=params,
+            headers=headers,
+            timeout=10
+        )
+
         data = response.json()
 
     except:
+
         return jsonify([])
 
     results = []
@@ -256,7 +269,7 @@ def search_temple():
     return jsonify(results)
 
 
-# ---------------- CROWD ----------------
+# ---------------- CROWD DETECTION ----------------
 
 @app.route("/crowd/<temple>")
 def crowd(temple):
@@ -283,6 +296,7 @@ def crowd(temple):
     low_threshold = 100
     medium_threshold = 200
 
+    # IF TEMPLE EXISTS IN ADMIN PANEL
     if temple_data:
 
         capacity = temple_data["capacity"]
@@ -294,7 +308,7 @@ def crowd(temple):
     # SIMULATED PEOPLE COUNT
     people = random.randint(0, capacity)
 
-    # CROWD LEVEL
+    # CROWD LOGIC
     if people < low_threshold:
 
         crowd_level = "Low"
@@ -316,11 +330,17 @@ def crowd(temple):
     score = int((people / capacity) * 100)
 
     return jsonify({
+
         "temple": temple,
+
         "people": people,
+
         "capacity": capacity,
+
         "score": score,
+
         "crowd_level": crowd_level,
+
         "suggestion": suggestion
     })
 
@@ -331,19 +351,27 @@ def crowd(temple):
 def predict(temple):
 
     best = random.choice([
+
+        "5 AM - Very Peaceful",
+
         "6 AM - Low Crowd",
+
         "8 AM - Best Time",
+
         "2 PM - Moderate Crowd",
+
         "8 PM - Peaceful Visit"
     ])
 
     return jsonify({
+
         "temple": temple,
+
         "best_time": best
     })
 
 
-# ---------------- SAVE SEARCH ----------------
+# ---------------- SEARCH HISTORY ----------------
 
 search_history = []
 
@@ -357,8 +385,6 @@ def save_search(name):
 
     return "ok"
 
-
-# ---------------- HISTORY ----------------
 
 @app.route("/history")
 def history():
@@ -379,4 +405,5 @@ def logout():
 # ---------------- RUN ----------------
 
 if __name__ == "__main__":
+
     app.run(debug=True)
