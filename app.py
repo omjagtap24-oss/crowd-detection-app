@@ -1,7 +1,8 @@
 # app.py
 
-from flask import Flask, render_template, request, redirect, url_for
-from flask import jsonify, session
+from flask import Flask, render_template, request, redirect
+from flask import url_for, jsonify, session
+
 import sqlite3
 import requests
 import random
@@ -11,7 +12,9 @@ app = Flask(__name__)
 app.secret_key = "pilgrimflow_secret"
 
 
-# ---------------- DATABASE ----------------
+# =====================================================
+# DATABASE
+# =====================================================
 
 def init_db():
 
@@ -26,7 +29,9 @@ def init_db():
     CREATE TABLE IF NOT EXISTS users(
 
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+
         username TEXT,
+
         password TEXT
 
     )
@@ -63,7 +68,9 @@ def init_db():
 init_db()
 
 
-# ---------------- HOME ----------------
+# =====================================================
+# LOGIN PAGE
+# =====================================================
 
 @app.route("/")
 def splash():
@@ -71,7 +78,9 @@ def splash():
     return render_template("login.html")
 
 
-# ---------------- SIGNUP ----------------
+# =====================================================
+# SIGNUP
+# =====================================================
 
 @app.route("/signup", methods=["POST"])
 def signup():
@@ -87,6 +96,7 @@ def signup():
     cur.execute("""
 
     INSERT INTO users(username,password)
+
     VALUES(?,?)
 
     """, (username, password))
@@ -98,7 +108,9 @@ def signup():
     return redirect("/")
 
 
-# ---------------- LOGIN ----------------
+# =====================================================
+# USER LOGIN
+# =====================================================
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -114,6 +126,7 @@ def login():
     cur.execute("""
 
     SELECT * FROM users
+
     WHERE username=? AND password=?
 
     """, (username, password))
@@ -131,7 +144,9 @@ def login():
     return "Invalid Username or Password"
 
 
-# ---------------- USER HOME ----------------
+# =====================================================
+# HOME PAGE
+# =====================================================
 
 @app.route("/home")
 def home():
@@ -143,7 +158,9 @@ def home():
     return render_template("index.html")
 
 
-# ---------------- ADMIN LOGIN ----------------
+# =====================================================
+# ADMIN LOGIN
+# =====================================================
 
 @app.route("/admin_login", methods=["POST"])
 def admin_login():
@@ -152,7 +169,7 @@ def admin_login():
 
     password = request.form["password"]
 
-    # CHANGE THIS IF YOU WANT
+    # ADMIN PASSWORD
 
     if username == "admin" and password == "admin123":
 
@@ -163,7 +180,9 @@ def admin_login():
     return "Invalid Admin Credentials"
 
 
-# ---------------- ADMIN PANEL ----------------
+# =====================================================
+# ADMIN PANEL
+# =====================================================
 
 @app.route("/admin")
 def admin():
@@ -178,11 +197,23 @@ def admin():
 
     cur = conn.cursor()
 
-    cur.execute("SELECT username FROM users")
+    # USERS
+
+    cur.execute("""
+
+    SELECT username FROM users
+
+    """)
 
     users = cur.fetchall()
 
-    cur.execute("SELECT * FROM temples")
+    # TEMPLES
+
+    cur.execute("""
+
+    SELECT * FROM temples
+
+    """)
 
     temples = cur.fetchall()
 
@@ -199,7 +230,9 @@ def admin():
     )
 
 
-# ---------------- ADD TEMPLE ----------------
+# =====================================================
+# ADD / UPDATE TEMPLE
+# =====================================================
 
 @app.route("/add_temple", methods=["POST"])
 def add_temple():
@@ -227,7 +260,8 @@ def add_temple():
     cur.execute("""
 
     SELECT * FROM temples
-    WHERE name=?
+
+    WHERE LOWER(name)=LOWER(?)
 
     """, (name,))
 
@@ -235,16 +269,20 @@ def add_temple():
 
     if existing:
 
+        # UPDATE
+
         cur.execute("""
 
         UPDATE temples
 
-        SET capacity=?,
+        SET
+
+            capacity=?,
             low_threshold=?,
             medium_threshold=?,
             radius=?
 
-        WHERE name=?
+        WHERE LOWER(name)=LOWER(?)
 
         """, (
 
@@ -257,6 +295,8 @@ def add_temple():
         ))
 
     else:
+
+        # INSERT
 
         cur.execute("""
 
@@ -289,7 +329,9 @@ def add_temple():
     return redirect("/admin")
 
 
-# ---------------- SEARCH TEMPLE ----------------
+# =====================================================
+# SEARCH TEMPLE
+# =====================================================
 
 @app.route("/search_temple")
 def search_temple():
@@ -352,12 +394,16 @@ def search_temple():
         return jsonify([])
 
 
-# ---------------- CROWD DETECTION ----------------
+# =====================================================
+# CROWD DETECTION
+# =====================================================
 
 @app.route("/crowd/<temple>")
 def crowd(temple):
 
-    temple_name = temple.lower()
+    # CLEAN TEMPLE NAME
+
+    temple_name = temple.lower().split(",")[0]
 
     conn = sqlite3.connect("database.db")
 
@@ -365,12 +411,15 @@ def crowd(temple):
 
     cur = conn.cursor()
 
+    # MATCH SEARCHED TEMPLE WITH ADMIN TEMPLE NAME
+
     cur.execute("""
 
     SELECT * FROM temples
-    WHERE LOWER(name) LIKE ?
 
-    """, ('%' + temple_name + '%',))
+    WHERE LOWER(?) LIKE '%' || LOWER(name) || '%'
+
+    """, (temple_name,))
 
     temple_data = cur.fetchone()
 
@@ -383,7 +432,7 @@ def crowd(temple):
     medium_threshold = 200
     radius = 500
 
-    # ADMIN VALUES
+    # LOAD ADMIN VALUES
 
     if temple_data:
 
@@ -395,11 +444,11 @@ def crowd(temple):
 
         radius = temple_data["radius"]
 
-    # SIMULATED PEOPLE COUNT
+    # SIMULATED GPS USERS
 
     people = random.randint(0, capacity)
 
-    # CROWD LOGIC
+    # CROWD LEVEL
 
     if people < low_threshold:
 
@@ -418,6 +467,8 @@ def crowd(temple):
         crowd_level = "High"
 
         suggestion = "Heavy crowd and traffic nearby"
+
+    # SCORE
 
     score = int((people / capacity) * 100)
 
@@ -440,16 +491,21 @@ def crowd(temple):
     })
 
 
-# ---------------- BEST TIME ----------------
+# =====================================================
+# BEST TIME
+# =====================================================
 
 @app.route("/predict/<temple>")
 def predict(temple):
 
-    times = [
+    best_times = [
 
         "6 AM - Peaceful Visit",
+
         "8 AM - Moderate Crowd",
+
         "2 PM - Less Waiting",
+
         "8 PM - Best Time"
 
     ]
@@ -458,12 +514,14 @@ def predict(temple):
 
         "temple": temple,
 
-        "best_time": random.choice(times)
+        "best_time": random.choice(best_times)
 
     })
 
 
-# ---------------- LOGOUT ----------------
+# =====================================================
+# LOGOUT
+# =====================================================
 
 @app.route("/logout")
 def logout():
@@ -473,7 +531,9 @@ def logout():
     return redirect("/")
 
 
-# ---------------- RUN ----------------
+# =====================================================
+# RUN APP
+# =====================================================
 
 if __name__ == "__main__":
 
