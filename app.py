@@ -333,6 +333,10 @@ def add_temple():
 # SEARCH TEMPLE
 # =====================================================
 
+# =====================================================
+# SEARCH TEMPLE
+# =====================================================
+
 @app.route("/search_temple")
 def search_temple():
 
@@ -344,15 +348,21 @@ def search_temple():
 
     url = "https://nominatim.openstreetmap.org/search"
 
-    params = {
+    # IMPROVED SEARCH QUERIES
 
-        "q": query + " temple India",
+    search_queries = [
 
-        "format": "json",
+        query,
 
-        "limit": 10
+        query + " temple",
 
-    }
+        query + " mandir",
+
+        query + " temple India",
+
+        query + " mandir India"
+
+    ]
 
     headers = {
 
@@ -360,36 +370,56 @@ def search_temple():
 
     }
 
+    all_results = []
+
     try:
 
-        response = requests.get(
+        for q in search_queries:
 
-            url,
-            params=params,
-            headers=headers,
-            timeout=10
+            params = {
 
-        )
+                "q": q,
 
-        data = response.json()
+                "format": "json",
 
-        results = []
+                "limit": 5
 
-        for place in data:
+            }
 
-            results.append({
+            response = requests.get(
 
-                "name": place.get("display_name"),
+                url,
+                params=params,
+                headers=headers,
+                timeout=10
 
-                "lat": place.get("lat"),
+            )
 
-                "lon": place.get("lon")
+            data = response.json()
 
-            })
+            for place in data:
 
-        return jsonify(results)
+                result = {
 
-    except:
+                    "name": place.get("display_name"),
+
+                    "lat": place.get("lat"),
+
+                    "lon": place.get("lon")
+
+                }
+
+                # AVOID DUPLICATES
+
+                if result not in all_results:
+
+                    all_results.append(result)
+
+        return jsonify(all_results)
+
+    except Exception as e:
+
+        print(e)
 
         return jsonify([])
 
